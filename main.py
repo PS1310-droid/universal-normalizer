@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Security
+from fastapi.security import APIKeyHeader
 import os
 import json
 import google.generativeai as genai
@@ -9,13 +10,9 @@ ip_tracker = {}
 
 # Load the API key
 load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 
-def ai_mapper(master_keys, messy_data):
-    # Select the model
-    model = genai.GenerativeModel("gemini-2.5-flash")
-
+def ai_mapper(master_keys, messy_data, custom_key=None):
     # prompt to send to the ai model
     prompt = f"""You are a senior database engineer building a schema translation map. 
     Your Task: You will be provided with a list of master keys and a JSON object of messy data. 
@@ -29,6 +26,13 @@ def ai_mapper(master_keys, messy_data):
     MASTER KEYS: {master_keys}
     MESSY DATA: {messy_data}
     """
+    if custom_key:
+        genai.configure(api_key=custom_key)
+    else:
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+    # Select the model
+    model = genai.GenerativeModel("gemini-2.5-flash")
 
     # Call the AI and force to return JSON
     response = model.generate_content(
@@ -42,6 +46,8 @@ def ai_mapper(master_keys, messy_data):
 
 # Creates the receptionist that listens for package
 app = FastAPI()
+# Crreates blueprint for the lock
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
 # Defines the desk location (endpoint) and the method GET
@@ -54,12 +60,10 @@ def generic_func():
 @app.post("/normalize/auto")
 # Defines the desk location (endpoint) and the method POST
 def clean_my_data(
-    payload: dict, request: Request
+    payload: dict, request: Request, user_custom_key: str = Security(api_key_header)
 ):  # Expect a JSON package and call it 'payload', 'request' here hands raw data
     # Get users ip
     user_ip = request.client.host
-    # Check if they brought their own key in the headers
-    user_custom_key = request.headers.get("X-API-Key")
 
     # If key present skip the tracker
     if user_custom_key is None:
@@ -82,7 +86,9 @@ def clean_my_data(
     messy_data = payload.get("messy_data")
 
     # Call AI and pass it master keys and messy data
-    schema_map = ai_mapper(master_keys=master_keys, messy_data=messy_data)
+    schema_map = ai_mapper(
+        master_keys=master_keys, messy_data=messy_data, custom_key=user_custom_key
+    )
     # Create empty dict to store clean data
     clean_data = {}
 
