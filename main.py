@@ -4,6 +4,33 @@ import os
 import json
 import google.generativeai as genai
 from dotenv import load_dotenv
+import re
+
+
+def exact_match_filter(master_keys, messy_data):
+    free_map = {}
+    leftover_keys = []
+
+    # Create a dict that maps cleaned keys to original keyss eg {fname: f%*&name}
+    cleaned_messy_keys = {}
+    for original_key in messy_data.keys():
+        # remove everything except letters/numbers and lowercase it
+        clean_key = re.sub(r"[^a-zA-Z0-9]", "", original_key).lower()
+        cleaned_messy_keys[clean_key] = original_key
+
+    # check each master key against cleaned messy keys
+    for m_key in master_keys:
+        clean_m_key = re.sub(r"[^a-zA-Z0-9]", "", m_key).lower()
+
+        if clean_m_key in cleaned_messy_keys:
+            # match, save the original messy key in the value section
+            free_map[m_key] = cleaned_messy_keys[clean_m_key]
+        else:
+            # no match, add to leftover and will send to AI
+            leftover_keys.append(m_key)
+
+    return free_map, leftover_keys
+
 
 # keeps track of how many times an IP has used the free tier
 ip_tracker = {}
@@ -20,8 +47,17 @@ def ai_mapper(master_keys, messy_data, custom_key=None):
     
     Rules:
     1. Do NOT extract the data values. You must map the Key Names only.
-    2. If a master key has no logical match, map it to null.
-    3. Output strictly valid JSON. No markdown block formatting, no explanations.
+    2. If a master key has no logical match, map the match to null and confidence to 0.
+    3. Assign a confidence score from 0 to 100 based on how sure you are that the semantic meanings are identical. This will be an integer value
+    4. Output strictly valid JSON. No markdown block formatting, no explanations.
+    
+    EXPECTED OUTPUT FORMAT:
+    {{
+      "Master_Key_Example": {{
+        "match": "messy_key_name",
+        "confidence": 95
+      }}
+    }}
     
     MASTER KEYS: {master_keys}
     MESSY DATA: {messy_data}
@@ -85,20 +121,58 @@ def clean_my_data(
     master_keys = payload.get("master_keys")
     messy_data = payload.get("messy_data")
 
-    # Call AI and pass it master keys and messy data
-    schema_map = ai_mapper(
-        master_keys=master_keys, messy_data=messy_data, custom_key=user_custom_key
+    # mnaual clean up for exact key matches to reduce rate limiting by sending only complex keys
+    free_map, leftover_keys = exact_match_filter(
+        master_keys=master_keys, messy_data=messy_data
     )
-    # Create empty dict to store clean data
-    clean_data = {}
 
-    for target_key, messy_key in schema_map.items():
-        # Look inside messy data and grab actual value
-        actual_value = messy_data.get(messy_key)
-        # Assign the value to new target key in clean dict
-        clean_data[target_key] = actual_value
+    # Only Call AI and pass it master keys and messy data if there are complex keys left
+    schema_map = {}
+    if len(leftover_keys) > 0:
+        schema_map = ai_mapper(
+            master_keys=leftover_keys, messy_data=messy_data, custom_key=user_custom_key
+        )
 
-    return {"message": "Data normalized using auto mapper.", "clean_data": clean_data}
+    # Create TWO buckets to return instead of one
+    auto_mapped = {}
+    needs_review = {}
+
+    if free_map is not None:
+        # process free matches
+        for m_key, messy_key in free_map.items():
+            # go get actual data from payload
+            actual_value = messy_data.get(messy_key)
+            # add to auto map buket
+            auto_mapped[m_key] = actual_value
+
+    for target_key, mapping_details in schema_map.items():
+        # Look inside mapping details and grab confidence and match key values
+        confidence = mapping_details.get("confidence")
+        match = mapping_details.get("match")
+
+        # Go to the actual data from the messy payload
+        if match is not None:
+            actual_value = messy_data.get(match)
+        else:
+            actual_value = None
+
+        # If confidence is > 85 and match is not null
+        if confidence >= 85 and match is not None:
+            # passed, put it in clean bucket
+            auto_mapped[target_key] = actual_value
+        else:
+            # failed, put in review bucket with meta data for preview
+            needs_review[target_key] = {
+                "suggested_match": match,
+                "suggested_value": actual_value,
+                "confidence_score": confidence,
+            }
+
+    return {
+        "message": "Data normalized using auto mapper.",
+        "ready_to_use": auto_mapped,
+        "flagged_for_review": needs_review,
+    }
 
 
 @app.post("/normalize/manual")
@@ -119,4 +193,4 @@ def clean_my_data_manually(
         # Assign the value to new target key in clean dict
         clean_data[target_key] = actual_value
 
-    return {"message": "Data dynamically normalized.", "clean_data": clean_data}
+    return {"message": "Data mapped.", "clean_data": clean_data}
