@@ -121,6 +121,8 @@ def clean_my_data(
     master_keys = payload.get("master_keys")
     messy_data = payload.get("messy_data")
 
+    audit_trail = []
+
     # mnaual clean up for exact key matches to reduce rate limiting by sending only complex keys
     free_map, leftover_keys = exact_match_filter(
         master_keys=master_keys, messy_data=messy_data
@@ -144,6 +146,10 @@ def clean_my_data(
             actual_value = messy_data.get(messy_key)
             # add to auto map buket
             auto_mapped[m_key] = actual_value
+            # Log the free match
+            audit_trail.append(
+                f"Exact Match: Mapped '{m_key}' deterministically to '{messy_key}'."
+            )
 
     for target_key, mapping_details in schema_map.items():
         # Look inside mapping details and grab confidence and match key values
@@ -160,6 +166,8 @@ def clean_my_data(
         if confidence >= 85 and match is not None:
             # passed, put it in clean bucket
             auto_mapped[target_key] = actual_value
+            message = f"Auto Mapper matched the data {target_key}  to {match} at {confidence}% confidence"
+            audit_trail.append(message)
         else:
             # failed, put in review bucket with meta data for preview
             needs_review[target_key] = {
@@ -168,10 +176,14 @@ def clean_my_data(
                 "confidence_score": confidence,
             }
 
+            message = f"Auto Mapper flagged the data {target_key} for review due to low confidence of {confidence}%"
+            audit_trail.append(message)
+
     return {
         "message": "Data normalized using auto mapper.",
         "ready_to_use": auto_mapped,
         "flagged_for_review": needs_review,
+        "audit_log": audit_trail,
     }
 
 
