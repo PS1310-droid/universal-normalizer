@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException, Security
 from fastapi.security import APIKeyHeader
+from fastapi.middleware.cors import CORSMiddleware
 import os
 import json
 import google.generativeai as genai
@@ -157,6 +158,14 @@ def ai_mapper(master_keys, messy_data, custom_key=None):
 
 # Creates the receptionist that listens for package
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # Crreates blueprint for the lock
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 

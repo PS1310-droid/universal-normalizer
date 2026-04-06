@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SchemaSync API · Any schema in. Your schema out.</title>
+    <meta name="description"
+        content="SchemaSync API maps any messy JSON payload to your master schema automatically. Deterministic matching first, AI as fallback, confidence scores on every field.">
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+
+<body>
+
+    <!-- Dynamic Tech Grid Background -->
+    <div class="grid-container dark-grid" id="tech-map-bg"></div>
+
+    <!-- ============================================ -->
+    <!-- SECTION 1: OVERVIEW (Hero)                   -->
+    <!-- ============================================ -->
+    <section class="hero" id="overview">
+        <div class="hero-glow"></div>
+        <div class="hero-glow-secondary"></div>
+        <div class="container">
+            <div class="eyebrow-tag">
+                <span class="hl">REST API</span> <span class="dot">·</span>
+                <span>JSON Schema Normalizer</span> <span class="dot">·</span>
+                <span>Built for data engineers</span>
+            </div>
+
+            <div class="hero-heading-container">
+                <h1 class="hero-title active">Your pipeline breaks because "phone_num" and "telephone" are the same
+                    thing.</h1>
+                <h1 class="hero-title">You spend 80% of sprint time renaming columns, not building features.</h1>
+                <h1 class="hero-title">Every tool sends JSON differently. Your database doesn't care.</h1>
+            </div>
+
+            <p class="hero-subheadline">
+                The SchemaSync API maps any messy JSON payload to your master schema automatically.
+                Deterministic matching first (exact matches), AI as fallback (for complex keys that can't be caught
+                deterministically), confidence scores on every field.
+            </p>
+
+            <div class="cta-group">
+                <a href="#playground" class="btn btn-primary">Try it free — no key needed</a>
+                <a href="#how" class="btn btn-secondary">Read the docs ↓</a>
+            </div>
+
+            <div class="trust-bar">
+                <span class="trust-item">Shopify · Salesforce · HubSpot · Mailchimp templates built in</span>
+                <span class="trust-divider">|</span>
+                <span class="trust-item">Confidence scores on every field</span>
+            </div>
+
+            <!-- Hero Visual: Side-by-side JSON Diff -->
+            <div class="json-diff">
+                <div class="json-block json-messy">
+                    <div class="json-block-label">What you receive</div>
+                    <pre><code>{
+  <span class="json-key">"f_name"</span>: <span class="json-str">"Bruce"</span>,
+  <span class="json-key">"telephone"</span>: <span class="json-str">"555-1234"</span>,
+  <span class="json-key">"cust_addr"</span>: {
+    <span class="json-key">"city_name"</span>: <span class="json-str">"Gotham"</span>
+  }
+}</code></pre>
+                </div>
+
+                <div class="json-arrow">
+                    <div class="json-arrow-label">POST /normalize/auto</div>
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                        <path d="M8 20H32M32 20L24 12M32 20L24 28" stroke="var(--accent-green)" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+
+                <div class="json-block json-clean">
+                    <div class="json-block-label">What you get back</div>
+                    <pre><code>{
+  <span class="json-key">"FirstName"</span>: <span class="json-str">"Bruce"</span>,
+  <span class="json-key">"PhoneNumber"</span>: <span class="json-str">"555-1234"</span>,
+  <span class="json-key">"City"</span>: <span class="json-str">"Gotham"</span>
+}</code></pre>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- SECTION 2: HOW IT WORKS (Docs)               -->
+    <!-- ============================================ -->
+    <section id="how" class="how-section">
+        <div class="container">
+            <h2 class="section-title">How it works — four layers, no surprises</h2>
+            <p class="section-subtitle">
+                We don't send every field to an AI and hope for the best. The pipeline runs cheapest first processing.
+                Exact matching catches the easy ones for free, AI only handles the genuinely ambiguous cases.
+            </p>
+
+            <!-- Pipeline Flow Diagram -->
+            <div class="pipeline-flow">
+                <div class="pipeline-step" data-step="1">
+                    <span class="pipeline-num">①</span>
+                    <span class="pipeline-label">Steamroller</span>
+                    <span class="pipeline-desc">Flatten nested JSON</span>
+                </div>
+                <div class="pipeline-connector"><span>→</span></div>
+                <div class="pipeline-step" data-step="2">
+                    <span class="pipeline-num">②</span>
+                    <span class="pipeline-label">Exact Matcher</span>
+                    <span class="pipeline-desc">Free, deterministic</span>
+                </div>
+                <div class="pipeline-connector"><span>→</span></div>
+                <div class="pipeline-step" data-step="3">
+                    <span class="pipeline-num">③</span>
+                    <span class="pipeline-label">AI Mapper</span>
+                    <span class="pipeline-desc">Ambiguous keys only</span>
+                </div>
+                <div class="pipeline-connector"><span>→</span></div>
+                <div class="pipeline-step" data-step="4">
+                    <span class="pipeline-num">④</span>
+                    <span class="pipeline-label">Confidence Gate</span>
+                    <span class="pipeline-desc">&lt;85% → flagged</span>
+                </div>
+            </div>
+
+            <!-- Layer Cards -->
+            <div class="layers-grid">
+                <!-- Layer 1 -->
+                <div class="layer-card">
+                    <span class="layer-step">01_</span>
+                    <h3>The Steamroller</h3>
+                    <p>Every real API (Shopify, Salesforce, HubSpot) sends deeply nested JSON. Objects inside objects,
+                        arrays of objects. Before we touch your schema, the Steamroller recursively flattens it. A key
+                        buried at <code>customer → location → city</code> becomes <code>customer_location_city</code>.
+                        Your master schema stays flat and clean.</p>
+                    <div class="layer-code">
+                        <div class="code-label">Input</div>
+                        <pre><code>{ <span class="json-key">"customer"</span>: { <span class="json-key">"location"</span>: { <span class="json-key">"city"</span>: <span class="json-str">"Gotham"</span> } } }</code></pre>
+                        <div class="code-label" style="margin-top: 12px;">Output</div>
+                        <pre><code>{ <span class="json-key">"customer_location_city"</span>: <span class="json-str">"Gotham"</span> }</code></pre>
+                    </div>
+                </div>
+
+                <!-- Layer 2 -->
+                <div class="layer-card">
+                    <span class="layer-step">02_</span>
+                    <h3>Exact Matcher</h3>
+                    <p>Before we call any AI model, we strip punctuation, lowercase everything, and compare.
+                        "First_Name", "firstname", and "f-i-r-s-t-name" all match FirstName. If Python can figure it
+                        out, it does. For free, in milliseconds, with zero hallucination risk.</p>
+                    <div class="layer-code">
+                        <div class="match-flow">
+                            <div class="match-row match-no">
+                                <code>"telephone"</code> <span class="match-arrow">→</span> strips to
+                                <code>"telephone"</code> <span class="match-arrow">→</span> matches "PhoneNumber"? <span
+                                    class="match-verdict no">No → goes to AI</span>
+                            </div>
+                            <div class="match-row match-yes">
+                                <code>"firstname"</code> <span class="match-arrow">→</span> strips to
+                                <code>"firstname"</code> <span class="match-arrow">→</span> matches "FirstName"? <span
+                                    class="match-verdict yes">Yes → mapped. Free.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Layer 3 -->
+                <div class="layer-card">
+                    <span class="layer-step">03_</span>
+                    <h3>AI Mapper with Confidence Gate</h3>
+                    <p>Only the keys the exact matcher couldn't figure out get sent to the AI. It returns a confidence
+                        score (0 to 100) for every match. Above 85%: auto mapped into your clean output. Below 85%:
+                        flagged for human review with the suggested match attached, so your team decides, not the model.
+                    </p>
+                    <div class="layer-code">
+                        <pre><code><span class="json-key">"ready_to_use"</span>: {
+  <span class="json-key">"FirstName"</span>: <span class="json-str">"Bruce"</span>
+}
+
+<span class="json-key">"flagged_for_review"</span>: {
+  <span class="json-key">"PhoneNumber"</span>: {
+    <span class="json-key">"suggested_match"</span>: <span class="json-str">"tel"</span>,
+    <span class="json-key">"confidence_score"</span>: <span class="json-num">61</span>
+  }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Layer 4 -->
+                <div class="layer-card">
+                    <span class="layer-step">04_</span>
+                    <h3>Template Engine</h3>
+                    <p>Pre-built and verified the exact field schemas for the most common enterprise tools. Instead of
+                        sending 20+ master keys every call, send one word. Templates are versioned and dated, you always
+                        know what schema version your pipeline was built against.</p>
+                    <div class="template-pills">
+                        <span class="template-pill">shopify_customer</span>
+                        <span class="template-pill">salesforce_lead</span>
+                        <span class="template-pill">hubspot_contact</span>
+                        <span class="template-pill">mailchimp_member</span>
+                    </div>
+                    <div class="layer-code">
+                        <pre><code>{
+  <span class="json-key">"template_name"</span>: <span class="json-str">"shopify_customer"</span>,
+  <span class="json-key">"messy_data"</span>: { ... }
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Endpoint Callout -->
+            <div class="manual-callout">
+                <div class="manual-callout-inner">
+                    <div class="manual-left">
+                        <span class="layer-step" style="font-size: 1.2rem;">05_</span>
+                        <h3>Manual Mode</h3>
+                        <p>Already know exactly which fields map to what? Skip the AI entirely. POST a schema_map object
+                            and the API will apply it directly. No model calls, no confidence scores, instant output.
+                            Use this in production pipelines where the schema is stable and speed matters.</p>
+                    </div>
+                    <div class="manual-right">
+                        <div class="endpoint-badge">POST /normalize/manual</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Code Snippets: cURL + Python Tabs -->
+            <div class="code-tabs-container">
+                <h3 class="code-tabs-heading">Make your first call</h3>
+                <div class="code-tabs">
+                    <button class="code-tab active" data-tab="curl">cURL</button>
+                    <button class="code-tab" data-tab="python">Python</button>
+                </div>
+                <div class="code-tab-content active" id="tab-curl">
+                    <pre><code><span class="code-cmd">curl</span> -X POST https://yourdomain.com/normalize/auto \
+  -H <span class="json-str">"Content-Type: application/json"</span> \
+  -d <span class="json-str">'{
+    "template_name": "shopify_customer",
+    "messy_data": {
+      "f_name": "Bruce",
+      "tel": "555-1234"
+    }
+  }'</span></code></pre>
+                </div>
+                <div class="code-tab-content" id="tab-python">
+                    <pre><code><span class="code-kw">import</span> requests
+
+r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"</span>,
+    json={
+        <span class="json-str">"template_name"</span>: <span class="json-str">"shopify_customer"</span>,
+        <span class="json-str">"messy_data"</span>: {<span class="json-str">"f_name"</span>: <span class="json-str">"Bruce"</span>}
+    })
+<span class="code-func">print</span>(r.json())</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- SECTION 3: PLAYGROUND + TEMPLATES            -->
+    <!-- ============================================ -->
+    <section id="playground" class="playground-section">
+        <div class="container">
+            <h2 class="section-title">Try it right now — no account needed</h2>
+            <p class="section-subtitle">
+                3 free calls on any IP. Paste your messy JSON, pick a template, and see exactly what the normalizer
+                returns, including the audit log and any flagged fields.
+            </p>
+
+            <div class="playground-layout">
+                <!-- Left Panel: Inputs -->
+                <div class="playground-input">
+                    <div class="pg-field">
+                        <label for="pg-template">Template</label>
+                        <select id="pg-template">
+                            <option value="shopify_customer">shopify_customer</option>
+                            <option value="salesforce_lead">salesforce_lead</option>
+                            <option value="hubspot_contact">hubspot_contact</option>
+                            <option value="mailchimp_member">mailchimp_member</option>
+                        </select>
+                    </div>
+
+                    <div class="pg-field">
+                        <label for="pg-json">Paste your messy JSON here</label>
+                        <textarea id="pg-json" rows="14" spellcheck="false">{
+  "f_name": "Bruce",
+  "l_name": "Wayne",
+  "telephone": "555-9988",
+  "emailAddress": "waynetech@example.com",
+  "cust_addr": {
+    "city_name": "Gotham",
+    "zip_code": "000001"
+  },
+  "orders_placed": 7
+}</textarea>
+                    </div>
+
+                    <div class="pg-field">
+                        <label for="pg-apikey">Your API key <span class="optional-label">(optional, for unlimited
+                                calls)</span></label>
+                        <input type="text" id="pg-apikey" placeholder="sk-... or AIza...">
+                    </div>
+
+                    <button class="btn btn-primary pg-submit" id="pg-submit">Normalize →</button>
+                    <p class="pg-fine-print">Free tier: 3 calls per IP. No sign up required.</p>
+                </div>
+
+                <!-- Right Panel: Output -->
+                <div class="playground-output">
+                    <div class="pg-output-tabs">
+                        <button class="pg-tab active" data-pg-tab="ready">Ready to use</button>
+                        <button class="pg-tab" data-pg-tab="flagged">Flagged for review</button>
+                        <button class="pg-tab" data-pg-tab="audit">Audit log</button>
+                    </div>
+                    <div class="pg-output-body">
+                        <div class="pg-tab-content active" id="pg-ready">
+                            <div class="pg-placeholder">
+                                <span class="pg-placeholder-icon">{ }</span>
+                                <p>Hit "Normalize →" to see your clean output here.</p>
+                            </div>
+                        </div>
+                        <div class="pg-tab-content" id="pg-flagged">
+                            <div class="pg-placeholder">
+                                <span class="pg-placeholder-icon">⚠</span>
+                                <p>Fields below 85% confidence will appear here.</p>
+                            </div>
+                        </div>
+                        <div class="pg-tab-content" id="pg-audit">
+                            <div class="pg-placeholder">
+                                <span class="pg-placeholder-icon">📋</span>
+                                <p>Audit trail entries will appear here.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pg-loading" id="pg-loading" style="display: none;">
+                        <div class="pg-spinner"></div>
+                        <p>Normalizing your data...</p>
+                    </div>
+                    <div class="pg-error" id="pg-error" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- Template Browser -->
+            <div class="template-browser-section">
+                <h3 class="template-browser-heading">Browse built in templates</h3>
+                <div class="template-browser">
+                    <div class="t-card" data-template="shopify_customer">
+                        <div class="t-card-header">
+                            <span class="t-name">shopify_customer</span>
+                            <span class="t-meta">v2026-Q2 · Verified Apr 2026 · 24 fields</span>
+                            <button class="btn btn-secondary view-keys-btn">View keys</button>
+                        </div>
+                        <div class="t-keys-container"></div>
+                    </div>
+                    <div class="t-card" data-template="salesforce_lead">
+                        <div class="t-card-header">
+                            <span class="t-name">salesforce_lead</span>
+                            <span class="t-meta">v2026-Q2 · Verified Apr 2026 · 27 fields</span>
+                            <button class="btn btn-secondary view-keys-btn">View keys</button>
+                        </div>
+                        <div class="t-keys-container"></div>
+                    </div>
+                    <div class="t-card" data-template="hubspot_contact">
+                        <div class="t-card-header">
+                            <span class="t-name">hubspot_contact</span>
+                            <span class="t-meta">v2026-Q2 · Verified Apr 2026 · 23 fields</span>
+                            <button class="btn btn-secondary view-keys-btn">View keys</button>
+                        </div>
+                        <div class="t-keys-container"></div>
+                    </div>
+                    <div class="t-card" data-template="mailchimp_member">
+                        <div class="t-card-header">
+                            <span class="t-name">mailchimp_member</span>
+                            <span class="t-meta">v2026-Q2 · Verified Apr 2026 · 13 fields</span>
+                            <button class="btn btn-secondary view-keys-btn">View keys</button>
+                        </div>
+                        <div class="t-keys-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- SECTION 4: PRICING                           -->
+    <!-- ============================================ -->
+    <section id="pricing" class="pricing-section">
+        <div class="container">
+            <h2 class="section-title" style="text-align: center;">You saw it work. Here's how to keep using it.</h2>
+            <p class="section-subtitle" style="text-align: center; margin: 0 auto 48px auto;">
+                Bring your own key from any supported provider and pay only what you use at their rates. Or use ours for
+                managed billing and routing.
+            </p>
+
+            <div class="pricing-grid">
+                <!-- Tier 1: Free -->
+                <div class="price-card">
+                    <h3 class="p-name">Free</h3>
+                    <div class="p-price">$0</div>
+                    <ul class="p-features">
+                        <li>20 calls per IP</li>
+                        <li>All templates</li>
+                        <li>Steamroller + Exact matcher only</li>
+                        <li>No Auto Mapper</li>
+                    </ul>
+                    <button class="btn btn-secondary" style="width: 100%;">Start for free</button>
+                </div>
+
+                <!-- Tier 2: BYOK -->
+                <div class="price-card recommended">
+                    <div class="rec-badge">Recommended</div>
+                    <h3 class="p-name">BYOK</h3>
+                    <div class="p-price">Usage based</div>
+                    <ul class="p-features">
+                        <li>Unlimited calls</li>
+                        <li>All 4 templates</li>
+                        <li>Full Auto Mapper</li>
+                        <li>Confidence scoring</li>
+                        <li>Audit logs</li>
+                        <li>Gemini / OpenAI / Claude routing</li>
+                    </ul>
+                    <button class="btn btn-primary" style="width: 100%;">Get your API key</button>
+                </div>
+
+                <!-- Tier 3: Self-Hosted -->
+                <div class="price-card">
+                    <div class="coming-badge">Coming Soon</div>
+                    <h3 class="p-name">Self Hosted</h3>
+                    <div class="p-price">Custom</div>
+                    <ul class="p-features">
+                        <li>Custom template creation</li>
+                        <li>Self hosted API (no BYOK needed)</li>
+                        <li>Private schema registry</li>
+                        <li>On premise deployment</li>
+                        <li>Dedicated engineering support</li>
+                    </ul>
+                    <button class="btn btn-secondary" style="width: 100%;">Contact Sales</button>
+                </div>
+            </div>
+
+            <!-- Supported AI Providers -->
+            <div class="providers-row">
+                <p class="providers-label">Works with your existing keys</p>
+                <div class="provider-badges">
+                    <span class="provider-badge">Google Gemini</span>
+                    <span class="provider-badge">OpenAI</span>
+                    <span class="provider-badge">Anthropic Claude</span>
+                </div>
+                <p class="providers-fine-print">Pass your key in the X-API-Key header. We detect your provider
+                    automatically.</p>
+            </div>
+
+            <!-- FAQ -->
+            <div class="faq-section">
+                <h3 class="faq-heading">Frequently asked questions</h3>
+
+                <div class="faq-item">
+                    <button class="faq-question">Do you store my data?</button>
+                    <div class="faq-answer">
+                        <p>No. Each call is stateless. We do not log, store, or retain your messy_data or your output.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">What happens if my key is wrong or has no credits?</button>
+                    <div class="faq-answer">
+                        <p>The API returns a 400 error with the provider's message. We never silently fall back to our
+                            key.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">Can I submit my own template?</button>
+                    <div class="faq-answer">
+                        <p>Not yet in v1. Community template submissions are planned. For now, use the master_keys field
+                            to send any custom schema.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- FOOTER                                       -->
+    <!-- ============================================ -->
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="f-brand">
+                    <h2>SchemaSync API</h2>
+                    <p class="f-tagline">Any schema in. Your schema out.</p>
+                    <span class="version-badge">v1</span>
+                </div>
+
+                <div class="f-links">
+                    <h4>Resources</h4>
+                    <a href="#how">Docs</a>
+                    <a href="#">/normalize/auto</a>
+                    <a href="#">/normalize/manual</a>
+                    <a href="#">/templates</a>
+                    <a href="#">/health</a>
+                </div>
+
+                <div class="f-links">
+                    <h4>Contact</h4>
+                    <a href="mailto:support@schemasync.dev">support@schemasync.dev</a>
+                    <p class="f-disclaimer">
+                        Template schemas are manually curated and versioned.<br>
+                        Not affiliated with Shopify, Salesforce, HubSpot, or Mailchimp.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>
