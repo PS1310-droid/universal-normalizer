@@ -3,6 +3,8 @@ from fastapi.security import APIKeyHeader
 import os
 import json
 import google.generativeai as genai
+from openai import OpenAI
+from anthropic import Anthropic
 from dotenv import load_dotenv
 import re
 
@@ -39,6 +41,60 @@ ip_tracker = {}
 load_dotenv()
 
 
+def call_claude(prompt, custom_key):
+    # Setup the Anthropic connection
+    client = Anthropic(api_key=custom_key)
+
+    # Call the model
+    response = client.messages.create(
+        model="claude-haiku-4.5",
+        max_tokens=1000,
+        system="You are an experienced and logical data assistant. Output strictly valid JSON.",
+        messages=[{"role": "user", "content": prompt}],
+    )
+    # Extract the string and convert to Python dictionary
+    return json.loads(response.content[0].text)
+
+
+def call_openai(prompt, custom_key):
+    # Setup the OpenAI connection
+    client = OpenAI(api_key=custom_key)
+
+    # Call the model and force JSON output
+    response = client.chat.completions.create(
+        model="gpt-5.4-nano",
+        response_format={"type": "json_object"},
+        messages=[
+            {
+                "role": "system",
+                "content": "You are an experienced and logical data assistant. Output strictly valid JSON.",
+            },
+            {"role": "user", "content": prompt},
+        ],
+    )
+    # Extract the string and convert to Python dictionary
+    return json.loads(response.choices[0].message.content)
+
+
+def call_gemini(prompt, custom_key):
+    if custom_key:
+        genai.configure(api_key=custom_key)
+    else:
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+    # Select the model
+    model = genai.GenerativeModel("gemini-2.5-flash")
+
+    # Call the AI and force to return JSON
+    response = model.generate_content(
+        prompt,
+        generation_config=genai.GenerationConfig(response_mime_type="application/json"),
+    )
+
+    # Covert AI text back into python dict
+    return json.loads(response.text)
+
+
 def ai_mapper(master_keys, messy_data, custom_key=None):
     # prompt to send to the ai model
     prompt = f"""You are a senior database engineer building a schema translation map. 
@@ -62,22 +118,13 @@ def ai_mapper(master_keys, messy_data, custom_key=None):
     MASTER KEYS: {master_keys}
     MESSY DATA: {messy_data}
     """
-    if custom_key:
-        genai.configure(api_key=custom_key)
+
+    if custom_key and custom_key.startswith("sk-ant-"):
+        return call_claude(prompt=prompt, custom_key=custom_key)
+    elif custom_key and custom_key.startswith("sk-"):
+        return call_openai(prompt=prompt, custom_key=custom_key)
     else:
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
-    # Select the model
-    model = genai.GenerativeModel("gemini-2.5-flash")
-
-    # Call the AI and force to return JSON
-    response = model.generate_content(
-        prompt,
-        generation_config=genai.GenerationConfig(response_mime_type="application/json"),
-    )
-
-    # Covert AI text back into python dict
-    return json.loads(response.text)
+        return call_gemini(prompt=prompt, custom_key=custom_key)
 
 
 # Creates the receptionist that listens for package
