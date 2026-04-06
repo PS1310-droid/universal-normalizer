@@ -168,6 +168,24 @@ def generic_func():
     return {"status": "The Normalizer is awake"}
 
 
+@app.get("/templates")
+def list_templates():
+    # open the file and read json
+    with open("templates.json", "r") as file:
+        all_templates = json.load(file)
+
+    # create a clean summary for the user
+    menu = {}
+    for name, details in all_templates.items():
+        # tell version and how many fields are in it
+        menu[name] = {
+            "version": details["version"],
+            "field_count": len(details["fields"]),
+        }
+
+    return {"available_templates": menu}
+
+
 @app.post("/normalize/auto")
 # Defines the desk location (endpoint) and the method POST
 def clean_my_data(
@@ -192,9 +210,38 @@ def clean_my_data(
             # let them thru but add 1 to their tab
             ip_tracker[user_ip] += 1
 
-    # Extract the 2 pieces
+    # extract whatever sent
+    template_name = payload.get("template_name")
     master_keys = payload.get("master_keys")
     messy_data = payload.get("messy_data")
+
+    # Check if they forgot the messy_data entirely
+    if not messy_data:
+        raise HTTPException(status_code=400, detail="Missing 'messy_data' in payload.")
+
+    # Template Logic
+    if template_name:
+        # They want a template open our menu the json.
+        with open("templates.json", "r") as file:
+            all_templates = json.load(file)
+
+        # Does the template they asked for actually exist in menu?
+        if template_name in all_templates:
+            # Yes,  Go into that specific template, and grab the "fields" list
+            master_keys = all_templates[template_name]["fields"]
+        else:
+            # No, user asked for something we don't have. Reject it.
+            raise HTTPException(
+                status_code=400, detail=f"Template '{template_name}' not found."
+            )
+
+    # If they didn't send a template, check if they sent custom master keys
+    elif not master_keys:
+        # They didn't send a template AND they didn't send master keys bruhh
+        raise HTTPException(
+            status_code=400,
+            detail="You must provide either a 'template_name' or a list of 'master_keys'.",
+        )
 
     # Pass the data through the Steamroller to handle nested industry standards
     messy_data = steamroller(messy_data)
