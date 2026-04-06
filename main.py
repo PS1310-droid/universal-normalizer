@@ -34,6 +34,34 @@ def exact_match_filter(master_keys, messy_data):
     return free_map, leftover_keys
 
 
+def steamroller(nested_dict, parent_key="", sep="_"):
+    flat_dict = {}
+
+    for key, value in nested_dict.items():
+        # create the new glued key (eg cust + _ + name)
+        new_key = f"{parent_key}{sep}{key}" if parent_key else key
+
+        if isinstance(value, dict):
+            # if its a dict (folder), call the steamroller on it (recursion)
+            flat_dict.update(steamroller(value, new_key, sep=sep))
+
+        elif isinstance(value, list):
+            # if its a list (array), loop thru the items and number them
+            for index, item in enumerate(value):
+                list_key = f"{new_key}{sep}{index}"
+
+                if isinstance(item, dict):
+                    # if the list contains folders, steamroll it
+                    flat_dict.update(steamroller(item, list_key, sep=sep))
+                else:
+                    # if its a regular item, save it
+                    flat_dict[list_key] = item
+        else:
+            # if its a normal value, savit it to the dict
+            flat_dict[new_key] = value
+    return flat_dict
+
+
 # keeps track of how many times an IP has used the free tier
 ip_tracker = {}
 
@@ -167,6 +195,9 @@ def clean_my_data(
     # Extract the 2 pieces
     master_keys = payload.get("master_keys")
     messy_data = payload.get("messy_data")
+
+    # Pass the data through the Steamroller to handle nested industry standards
+    messy_data = steamroller(messy_data)
 
     audit_trail = []
 
