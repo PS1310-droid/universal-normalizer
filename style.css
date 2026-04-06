@@ -233,7 +233,7 @@ p.section-subtitle {
 }
 
 .hero-heading-container {
-    min-height: 160px;
+    min-height: 280px;
     margin-bottom: 24px;
     position: relative;
 }
@@ -243,7 +243,7 @@ p.section-subtitle {
     font-weight: 800;
     line-height: 1.1;
     letter-spacing: -0.04em;
-    color: var(--text-primary);
+    color: var(--accent-green);
     position: absolute;
     top: 0;
     left: 0;
@@ -996,9 +996,12 @@ p.section-subtitle {
 
 .pricing-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 24px;
     margin-bottom: 48px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .price-card {
@@ -1125,7 +1128,7 @@ p.section-subtitle {
 }
 
 .providers-fine-print {
-    color: var(--text-dim);
+    color: var(--accent-green);
     font-size: 0.8rem;
     font-family: var(--font-mono);
 }
@@ -1139,7 +1142,7 @@ p.section-subtitle {
 .faq-heading {
     text-align: center;
     font-size: 2rem;
-    color: var(--text-primary);
+    color: var(--accent-green);
     margin-bottom: 32px;
 }
 
@@ -1203,7 +1206,7 @@ footer {
     font-size: 1.5rem;
     font-weight: 800;
     margin-bottom: 8px;
-    color: var(--text-primary);
+    color: var(--accent-green);
 }
 
 .f-tagline {

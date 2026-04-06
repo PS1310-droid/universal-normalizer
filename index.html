@@ -255,6 +255,67 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
 <span class="code-func">print</span>(r.json())</code></pre>
                 </div>
             </div>
+
+            <!-- Payload Breakdown & Endpoints -->
+            <div class="payload-docs" id="how-auto" style="margin-top: 64px;">
+                <h3 class="docs-subheading" style="color: var(--text-primary); margin-bottom: 16px; font-size: 1.4rem;">
+                    Payload Formats</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 24px;">When calling <code>/normalize/auto</code>,
+                    you must provide the raw JSON object you want cleaned as <code>messy_data</code>. You must also tell
+                    the normalizer what your target schema looks like using either a built-in template or your own array
+                    of keys.</p>
+
+                <div class="layers-grid">
+                    <div class="layer-card">
+                        <h4 style="color: var(--accent-green); margin-bottom: 12px; font-family: var(--font-mono);">
+                            Using a Template</h4>
+                        <p style="color: var(--text-secondary); font-size: 0.95rem;">Pass <code>template_name</code>
+                            with the exact name of a verified template to apply its schema.</p>
+                        <pre
+                            style="background: var(--code-bg); padding: 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.85rem; color: #e5e7eb; border: 1px solid var(--border-color);">{
+  <span class="json-key">"template_name"</span>: <span class="json-str">"shopify_customer"</span>,
+  <span class="json-key">"messy_data"</span>: { ... }
+}</pre>
+                    </div>
+
+                    <div class="layer-card">
+                        <h4 style="color: var(--accent-green); margin-bottom: 12px; font-family: var(--font-mono);">
+                            Using Custom Master Keys</h4>
+                        <p style="color: var(--text-secondary); font-size: 0.95rem;">Alternatively, pass an array of
+                            strings as <code>master_keys</code> to define your custom schema on the fly.</p>
+                        <pre
+                            style="background: var(--code-bg); padding: 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.85rem; color: #e5e7eb; border: 1px solid var(--border-color);">{
+  <span class="json-key">"master_keys"</span>: [<span class="json-str">"FirstName"</span>, <span class="json-str">"PhoneNumber"</span>],
+  <span class="json-key">"messy_data"</span>: { ... }
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Method Docs -->
+            <div class="payload-docs" id="how-manual" style="margin-top: 48px;">
+                <h3 class="docs-subheading" style="color: var(--text-primary); margin-bottom: 16px; font-size: 1.4rem;">
+                    The Manual Endpoint</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 24px;">If you already know the field mapping and
+                    want to bypass the AI processing for a faster response, you can post directly to
+                    <code>/normalize/manual</code>. Provide a <code>schema_map</code> dictionary linking your intended
+                    master keys to the provided messy keys.
+                </p>
+                <div class="layer-code">
+                    <pre><code><span class="code-cmd">curl</span> -X POST https://yourdomain.com/normalize/manual \
+  -H <span class="json-str">"Content-Type: application/json"</span> \
+  -d <span class="json-str">'{
+    "schema_map": {
+      "FirstName": "f_name",
+      "PhoneNumber": "tel"
+    },
+    "messy_data": {
+      "f_name": "Bruce",
+      "tel": "555-1234"
+    }
+  }'</span></code></pre>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -424,20 +485,6 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
                     <button class="btn btn-primary" style="width: 100%;">Get your API key</button>
                 </div>
 
-                <!-- Tier 3: Self-Hosted -->
-                <div class="price-card">
-                    <div class="coming-badge">Coming Soon</div>
-                    <h3 class="p-name">Self Hosted</h3>
-                    <div class="p-price">Custom</div>
-                    <ul class="p-features">
-                        <li>Custom template creation</li>
-                        <li>Self hosted API (no BYOK needed)</li>
-                        <li>Private schema registry</li>
-                        <li>On premise deployment</li>
-                        <li>Dedicated engineering support</li>
-                    </ul>
-                    <button class="btn btn-secondary" style="width: 100%;">Contact Sales</button>
-                </div>
             </div>
 
             <!-- Supported AI Providers -->
@@ -465,10 +512,11 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
                 </div>
 
                 <div class="faq-item">
-                    <button class="faq-question">What happens if my key is wrong or has no credits?</button>
+                    <button class="faq-question">Why is the Auto Mapper disabled on the free tier?</button>
                     <div class="faq-answer">
-                        <p>The API returns a 400 error with the provider's message. We never silently fall back to our
-                            key.</p>
+                        <p>The Auto Mapper relies on advanced AI models (Gemini/Claude/OpenAI) which charge per token.
+                            To keep the API sustainable and prevent abuse, AI features are restricted to the BYOK (Bring
+                            Your Own Key) tier where you control your own usage costs.</p>
                     </div>
                 </div>
 
@@ -498,10 +546,9 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
                 <div class="f-links">
                     <h4>Resources</h4>
                     <a href="#how">Docs</a>
-                    <a href="#">/normalize/auto</a>
-                    <a href="#">/normalize/manual</a>
-                    <a href="#">/templates</a>
-                    <a href="#">/health</a>
+                    <a href="#how-auto">/normalize/auto</a>
+                    <a href="#how-manual">/normalize/manual</a>
+                    <a href="#playground">Playground</a>
                 </div>
 
                 <div class="f-links">

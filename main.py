@@ -3,7 +3,8 @@ from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import json
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from openai import OpenAI
 from anthropic import Anthropic
 from dotenv import load_dotenv
@@ -106,18 +107,16 @@ def call_openai(prompt, custom_key):
 
 
 def call_gemini(prompt, custom_key):
-    if custom_key:
-        genai.configure(api_key=custom_key)
-    else:
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
-    # Select the model
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    api_key = custom_key if custom_key else os.getenv("GEMINI_API_KEY")
+    client = genai.Client(api_key=api_key)
 
     # Call the AI and force to return JSON
-    response = model.generate_content(
-        prompt,
-        generation_config=genai.GenerationConfig(response_mime_type="application/json"),
+    response = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+        ),
     )
 
     # Covert AI text back into python dict

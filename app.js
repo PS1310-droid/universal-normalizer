@@ -118,7 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const submitBtn = document.getElementById('pg-submit');
     if (submitBtn) {
-        submitBtn.addEventListener('click', async () => {
+        submitBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
             const template = document.getElementById('pg-template').value;
             const apiKey = document.getElementById('pg-apikey').value.trim();
             const jsonText = document.getElementById('pg-json').value;
