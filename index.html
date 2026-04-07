@@ -240,6 +240,8 @@
                 <div class="code-tab-content active" id="tab-curl">
                     <pre><code><span class="code-cmd">curl</span> -X POST https://yourdomain.com/normalize/auto \
   -H <span class="json-str">"Content-Type: application/json"</span> \
+  -H <span class="json-str">"x-schemasync-license: sync_pro_YOUR_LICENSE_KEY"</span> \
+  -H <span class="json-str">"x-llm-key: sk-proj-YOUR_OPENAI_OR_GEMINI_KEY"</span> \
   -d <span class="json-str">'{
     "template_name": "shopify_customer",
     "messy_data": {
@@ -251,7 +253,12 @@
                 <div class="code-tab-content" id="tab-python">
                     <pre><code><span class="code-kw">import</span> requests
 
+headers = {
+    <span class="json-str">"x-schemasync-license"</span>: <span class="json-str">"sync_pro_YOUR_LICENSE_KEY"</span>,
+    <span class="json-str">"x-llm-key"</span>: <span class="json-str">"sk-proj-YOUR_LLM_KEY"</span>
+}
 r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"</span>,
+    headers=headers,
     json={
         <span class="json-str">"template_name"</span>: <span class="json-str">"shopify_customer"</span>,
         <span class="json-str">"messy_data"</span>: {<span class="json-str">"f_name"</span>: <span class="json-str">"Bruce"</span>}
@@ -469,6 +476,7 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
                         <li>All templates</li>
                         <li>Steamroller + Exact matcher only</li>
                         <li>No LLM Auto Mapper</li>
+                        <li>Max 500 characters per payload</li>
                     </ul>
                     <a href="#tab-curl" class="btn btn-secondary" style="width: 100%; text-decoration: none;">Start for
                         free</a>
@@ -486,6 +494,7 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
                         <li>Confidence scoring</li>
                         <li>Audit logs</li>
                         <li>Gemini / OpenAI / Claude routing</li>
+                        <li>Max 5,000 characters per payload</li>
                     </ul>
                     <button class="btn btn-primary" style="width: 100%;">Get your API key</button>
                 </div>
@@ -500,8 +509,8 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
                     <span class="provider-badge pb-openai">OpenAI</span>
                     <span class="provider-badge pb-claude">Anthropic Claude</span>
                 </div>
-                <p class="providers-fine-print">Pass your key in the X-API-Key header. The API detects your provider
-                    automatically.</p>
+                <p class="providers-fine-print">Pass your license in the <code>x-schemasync-license</code> header, and
+                    your LLM key in the <code>x-llm-key</code> header. The API detects your provider automatically.</p>
             </div>
 
             <!-- FAQ -->

@@ -161,7 +161,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: headers,
                     body: JSON.stringify({
                         template_name: template,
-                        messy_data: payload
+                        messy_data: payload,
+                        is_playground: true // Tells the backend to use the strict 300-char limit
                     })
                 });
 

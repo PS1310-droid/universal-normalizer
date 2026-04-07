@@ -1,13 +1,12 @@
-from fastapi import FastAPI, Request, HTTPException, Security
+from fastapi import FastAPI, Request, HTTPException, Header
+from typing import Optional
 from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
-import os
 import json
 from google import genai
 from google.genai import types
 from openai import OpenAI
 from anthropic import Anthropic
-from dotenv import load_dotenv
 import re
 
 
@@ -67,8 +66,7 @@ def steamroller(nested_dict, parent_key="", sep="_"):
 # keeps track of how many times an IP has used the free tier
 ip_tracker = {}
 
-# Load the API key
-load_dotenv()
+VALID_LICENSES = ["sync-pro-launch-2026", "dev-test-key"]
 
 
 def call_claude(prompt, custom_key):
@@ -107,12 +105,11 @@ def call_openai(prompt, custom_key):
 
 
 def call_gemini(prompt, custom_key):
-    api_key = custom_key if custom_key else os.getenv("GEMINI_API_KEY")
-    client = genai.Client(api_key=api_key)
+    client = genai.Client(api_key=custom_key)
 
     # Call the AI and force to return JSON
     response = client.models.generate_content(
-        model='gemini-2.5-flash',
+        model="gemini-2.5-flash",
         contents=prompt,
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
@@ -197,31 +194,56 @@ def list_templates():
 @app.post("/normalize/auto")
 # Defines the desk location (endpoint) and the method POST
 def clean_my_data(
-    payload: dict, request: Request, user_custom_key: str = Security(api_key_header)
-):  # Expect a JSON package and call it 'payload', 'request' here hands raw data
-    # Get users ip
+    payload: dict,
+    request: Request,
+    x_schemasync_license: Optional[str] = Header(None),
+    x_llm_key: Optional[str] = Header(None),
+):
+    # Expect a JSON package and call it 'payload', 'request' here hands raw data, look for x_schemasync_license and x_llm_key. they are Optional, and if the user doesn't provide them, just default to None instead of crashing
+    # security: check if they are paying users
+    is_pro = x_schemasync_license in VALID_LICENSES
+
+    # Check if this is coming from the website demo
+    is_playground = payload.get("is_playground", False)
+
+    # 1. SECURITY: Prevent massive payload attacks (The 3 Tiers)
+    messy_data = payload.get("messy_data", {})
+    payload_str = str(messy_data)
+
+    if is_playground:
+        size_limit = 300  # Super strict for the landing page demo
+    elif is_pro:
+        size_limit = 5000
+    else:
+        size_limit = 500  # Free API Tier
+
+    if len(payload_str) > size_limit:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Payload too large. Max {size_limit} characters.",
+        )
+
+    # 2. QUOTA: Track IP limits for free/playground users
     user_ip = request.client.host
-
-    # If key present skip the tracker
-    if user_custom_key is None:
-        # no key, check if user data exist in tracker
+    if not is_pro:
         if user_ip not in ip_tracker:
-            ip_tracker[user_ip] = 0  # add user and start at 0
+            ip_tracker[user_ip] = 0  # add user start at 0
 
-        # have they used up trail?
-        if ip_tracker[user_ip] >= 3:
+        # Playground and Free API gets 20 calls
+        max_calls = 20
+
+        # If they hit the limit, reject them.
+        if ip_tracker[user_ip] >= max_calls:
             raise HTTPException(
                 status_code=429,
-                detail="Trial without an API key exceeded. Please pass your own API key in the 'X-API-Key' header to continue.",
+                detail=f"Limit of {max_calls} calls reached. Purchase a license or provide an LLM key.",
             )
         else:
-            # let them thru but add 1 to their tab
             ip_tracker[user_ip] += 1
 
     # extract whatever sent
     template_name = payload.get("template_name")
     master_keys = payload.get("master_keys")
-    messy_data = payload.get("messy_data")
 
     # Check if they forgot the messy_data entirely
     if not messy_data:
@@ -261,11 +283,11 @@ def clean_my_data(
         master_keys=master_keys, messy_data=messy_data
     )
 
-    # Only Call AI and pass it master keys and messy data if there are complex keys left
+    # Strict AI Gate: Must have complex keys AND be a Pro User AND have an LLM key
     schema_map = {}
-    if len(leftover_keys) > 0:
+    if len(leftover_keys) > 0 and is_pro and x_llm_key:
         schema_map = ai_mapper(
-            master_keys=leftover_keys, messy_data=messy_data, custom_key=user_custom_key
+            master_keys=leftover_keys, messy_data=messy_data, custom_key=x_llm_key
         )
 
     # Create TWO buckets to return instead of one
