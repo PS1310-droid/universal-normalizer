@@ -38,12 +38,12 @@
 
             <p class="hero-subheadline">
                 The SchemaSync API maps any messy JSON payload to your master schema automatically.
-                Deterministic matching first (exact matches), AI as fallback (for complex keys that can't be caught
-                deterministically), confidence scores on every field.
+                Deterministic matching first (exact matches), LLM inference as a fallback (for complex semantic
+                routing), confidence scores on every field.
             </p>
 
             <div class="cta-group">
-                <a href="#playground" class="btn btn-primary">Try it free — no key needed</a>
+                <a href="#playground" class="btn btn-primary">Try it free. No key needed.</a>
                 <a href="#how" class="btn btn-secondary">Read the docs ↓</a>
             </div>
 
@@ -92,10 +92,10 @@
     <!-- ============================================ -->
     <section id="how" class="how-section">
         <div class="container">
-            <h2 class="section-title">How it works — four layers, no surprises</h2>
+            <h2 class="section-title"><span class="title-underline">How it works. Four layers, no surprises.</span></h2>
             <p class="section-subtitle">
-                We don't send every field to an AI and hope for the best. The pipeline runs cheapest first processing.
-                Exact matching catches the easy ones for free, AI only handles the genuinely ambiguous cases.
+                I don't send every field to a model and hope for the best. My pipeline forces cheapest-first processing.
+                Exact matching catches the easy ones for free, LLMs only handle the genuinely ambiguous cases.
             </p>
 
             <!-- Pipeline Flow Diagram -->
@@ -132,7 +132,8 @@
                     <span class="layer-step">01_</span>
                     <h3>The Steamroller</h3>
                     <p>Every real API (Shopify, Salesforce, HubSpot) sends deeply nested JSON. Objects inside objects,
-                        arrays of objects. Before we touch your schema, the Steamroller recursively flattens it. A key
+                        arrays of objects. Before the API touches your schema, the Steamroller recursively flattens it.
+                        A key
                         buried at <code>customer → location → city</code> becomes <code>customer_location_city</code>.
                         Your master schema stays flat and clean.</p>
                     <div class="layer-code">
@@ -147,7 +148,8 @@
                 <div class="layer-card">
                     <span class="layer-step">02_</span>
                     <h3>Exact Matcher</h3>
-                    <p>Before we call any AI model, we strip punctuation, lowercase everything, and compare.
+                    <p>Before hitting any inference endpoints, the API strips punctuation, lowercases everything, and
+                        compares.
                         "First_Name", "firstname", and "f-i-r-s-t-name" all match FirstName. If Python can figure it
                         out, it does. For free, in milliseconds, with zero hallucination risk.</p>
                     <div class="layer-code">
@@ -155,7 +157,7 @@
                             <div class="match-row match-no">
                                 <code>"telephone"</code> <span class="match-arrow">→</span> strips to
                                 <code>"telephone"</code> <span class="match-arrow">→</span> matches "PhoneNumber"? <span
-                                    class="match-verdict no">No → goes to AI</span>
+                                    class="match-verdict no">No → goes to LLM</span>
                             </div>
                             <div class="match-row match-yes">
                                 <code>"firstname"</code> <span class="match-arrow">→</span> strips to
@@ -169,8 +171,9 @@
                 <!-- Layer 3 -->
                 <div class="layer-card">
                     <span class="layer-step">03_</span>
-                    <h3>AI Mapper with Confidence Gate</h3>
-                    <p>Only the keys the exact matcher couldn't figure out get sent to the AI. It returns a confidence
+                    <h3>Semantic Fallback Engine</h3>
+                    <p>Only the keys the exact matcher couldn't figure out are routed to the LLM. The engine returns a
+                        strict confidence
                         score (0 to 100) for every match. Above 85%: auto mapped into your clean output. Below 85%:
                         flagged for human review with the suggested match attached, so your team decides, not the model.
                     </p>
@@ -216,7 +219,8 @@
                     <div class="manual-left">
                         <span class="layer-step" style="font-size: 1.2rem;">05_</span>
                         <h3>Manual Mode</h3>
-                        <p>Already know exactly which fields map to what? Skip the AI entirely. POST a schema_map object
+                        <p>Already know exactly which fields map to what? Skip the LLM entirely. POST a schema_map
+                            object
                             and the API will apply it directly. No model calls, no confidence scores, instant output.
                             Use this in production pipelines where the schema is stable and speed matters.</p>
                     </div>
@@ -297,7 +301,7 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
                 <h3 class="docs-subheading" style="color: var(--text-primary); margin-bottom: 16px; font-size: 1.4rem;">
                     The Manual Endpoint</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 24px;">If you already know the field mapping and
-                    want to bypass the AI processing for a faster response, you can post directly to
+                    want to bypass LLM processing for a faster response, you can post directly to
                     <code>/normalize/manual</code>. Provide a <code>schema_map</code> dictionary linking your intended
                     master keys to the provided messy keys.
                 </p>
@@ -324,7 +328,7 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
     <!-- ============================================ -->
     <section id="playground" class="playground-section">
         <div class="container">
-            <h2 class="section-title">Try it right now — no account needed</h2>
+            <h2 class="section-title">Try it right now. No account needed.</h2>
             <p class="section-subtitle">
                 3 free calls on any IP. Paste your messy JSON, pick a template, and see exactly what the normalizer
                 returns, including the audit log and any flagged fields.
@@ -449,10 +453,10 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
     <!-- ============================================ -->
     <section id="pricing" class="pricing-section">
         <div class="container">
-            <h2 class="section-title" style="text-align: center;">You saw it work. Here's how to keep using it.</h2>
+            <h2 class="section-title" style="text-align: center;"><span class="title-underline">You saw it work. Here's
+                    how to keep using it.</span></h2>
             <p class="section-subtitle" style="text-align: center; margin: 0 auto 48px auto;">
-                Bring your own key from any supported provider and pay only what you use at their rates. Or use ours for
-                managed billing and routing.
+                Bring your own key from any supported provider and pay only what you use at their rates.
             </p>
 
             <div class="pricing-grid">
@@ -464,9 +468,10 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
                         <li>20 calls per IP</li>
                         <li>All templates</li>
                         <li>Steamroller + Exact matcher only</li>
-                        <li>No Auto Mapper</li>
+                        <li>No LLM Auto Mapper</li>
                     </ul>
-                    <button class="btn btn-secondary" style="width: 100%;">Start for free</button>
+                    <a href="#tab-curl" class="btn btn-secondary" style="width: 100%; text-decoration: none;">Start for
+                        free</a>
                 </div>
 
                 <!-- Tier 2: BYOK -->
@@ -477,7 +482,7 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
                     <ul class="p-features">
                         <li>Unlimited calls</li>
                         <li>All 4 templates</li>
-                        <li>Full Auto Mapper</li>
+                        <li>Full LLM Auto Mapper</li>
                         <li>Confidence scoring</li>
                         <li>Audit logs</li>
                         <li>Gemini / OpenAI / Claude routing</li>
@@ -487,15 +492,15 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
 
             </div>
 
-            <!-- Supported AI Providers -->
+            <!-- Supported LLM Providers -->
             <div class="providers-row">
                 <p class="providers-label">Works with your existing keys</p>
                 <div class="provider-badges">
-                    <span class="provider-badge">Google Gemini</span>
-                    <span class="provider-badge">OpenAI</span>
-                    <span class="provider-badge">Anthropic Claude</span>
+                    <span class="provider-badge pb-gemini">Google Gemini</span>
+                    <span class="provider-badge pb-openai">OpenAI</span>
+                    <span class="provider-badge pb-claude">Anthropic Claude</span>
                 </div>
-                <p class="providers-fine-print">Pass your key in the X-API-Key header. We detect your provider
+                <p class="providers-fine-print">Pass your key in the X-API-Key header. The API detects your provider
                     automatically.</p>
             </div>
 
@@ -506,16 +511,16 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
                 <div class="faq-item">
                     <button class="faq-question">Do you store my data?</button>
                     <div class="faq-answer">
-                        <p>No. Each call is stateless. We do not log, store, or retain your messy_data or your output.
-                        </p>
+                        <p>No. The API is strictly stateless. I do not log, store, or train on your payload.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
                     <button class="faq-question">Why is the Auto Mapper disabled on the free tier?</button>
                     <div class="faq-answer">
-                        <p>The Auto Mapper relies on advanced AI models (Gemini/Claude/OpenAI) which charge per token.
-                            To keep the API sustainable and prevent abuse, AI features are restricted to the BYOK (Bring
+                        <p>The Auto Mapper relies on advanced LLMs (Gemini/Claude/OpenAI) which charge per token.
+                            To keep the API sustainable and prevent abuse, LLM matching features are restricted to the
+                            BYOK (Bring
                             Your Own Key) tier where you control your own usage costs.</p>
                     </div>
                 </div>
