@@ -158,7 +158,7 @@ def call_gemini(prompt, custom_key):
 
     # Call the AI and force to return JSON
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3.1-flash-lite-preview",
         contents=prompt,
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
@@ -211,6 +211,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 # Defines the desk location (endpoint) and the method GET
 @app.get("/health")
 def generic_func():
@@ -365,17 +367,34 @@ def clean_my_data(
         master_keys=master_keys, messy_data=messy_data
     )
 
-    # AI Gate: Allowed for Pro Users (Production) OR Playground Users (Demo), IF they provide an LLM key.
+    # AI Gate: Allowed for Pro Users OR Playground Users IF they provide an LLM key.
     schema_map = {}
     can_use_ai = (is_pro and x_llm_key) or (is_playground and x_llm_key)
+
     if len(leftover_keys) > 0 and can_use_ai:
-        schema_map = ai_mapper(
-            master_keys=leftover_keys, messy_data=messy_data, custom_key=x_llm_key
-        )
+        try:
+            schema_map = ai_mapper(
+                master_keys=leftover_keys, messy_data=messy_data, custom_key=x_llm_key
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=502,
+                detail=f"The AI provider failed to process the request: {str(e)}",
+            )
 
     # Create TWO buckets to return instead of one
     auto_mapped = {}
     needs_review = {}
+
+    # If AI is OFF, throw all leftover keys straight into the review bucket
+    if not can_use_ai:
+        for leftover in leftover_keys:
+            needs_review[leftover] = {
+                "suggested_match": None,
+                "suggested_value": None,
+                "confidence_score": 0,
+            }
+            audit_trail.append(f"AI Disabled: '{leftover}' flagged for manual review.")
 
     if free_map is not None:
         # process free matches
