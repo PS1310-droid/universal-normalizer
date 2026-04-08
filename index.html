@@ -337,21 +337,28 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
         <div class="container">
             <h2 class="section-title">Try it right now. No account needed.</h2>
             <p class="section-subtitle">
-                3 free calls on any IP. Paste your messy JSON, pick a template, and see exactly what the normalizer
-                returns, including the audit log and any flagged fields.
+                20 free calls per browser (Max 300 characters, 5 requests/min). Paste your messy JSON, pick a template,
+                and see exactly what the normalizer returns. Provide an LLM key below to test the Auto Mapper.
             </p>
 
             <div class="playground-layout">
                 <!-- Left Panel: Inputs -->
                 <div class="playground-input">
                     <div class="pg-field">
-                        <label for="pg-template">Template</label>
+                        <label for="pg-template">Target Schema</label>
                         <select id="pg-template">
-                            <option value="shopify_customer">shopify_customer</option>
-                            <option value="salesforce_lead">salesforce_lead</option>
-                            <option value="hubspot_contact">hubspot_contact</option>
-                            <option value="mailchimp_member">mailchimp_member</option>
+                            <option value="shopify_customer">shopify_customer (Template)</option>
+                            <option value="salesforce_lead">salesforce_lead (Template)</option>
+                            <option value="hubspot_contact">hubspot_contact (Template)</option>
+                            <option value="mailchimp_member">mailchimp_member (Template)</option>
+                            <option value="custom">-- Custom Master Keys --</option>
                         </select>
+                    </div>
+
+                    <div class="pg-field" id="pg-custom-keys-field" style="display: none;">
+                        <label for="pg-custom-keys">Master Keys <span class="optional-label">(Comma
+                                separated)</span></label>
+                        <input type="text" id="pg-custom-keys" placeholder="FirstName, LastName, PhoneNumber">
                     </div>
 
                     <div class="pg-field">
@@ -370,13 +377,14 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
                     </div>
 
                     <div class="pg-field">
-                        <label for="pg-apikey">Your API key <span class="optional-label">(optional, for unlimited
-                                calls)</span></label>
+                        <label for="pg-apikey">Test the LLM Mapper <span class="optional-label">(Paste your
+                                OpenAI/Gemini/Claude key here)</span></label>
                         <input type="text" id="pg-apikey" placeholder="sk-... or AIza...">
                     </div>
 
                     <button class="btn btn-primary pg-submit" id="pg-submit">Normalize →</button>
-                    <p class="pg-fine-print">Free tier: 3 calls per IP. No sign up required.</p>
+                    <p class="pg-fine-print">Playground limits: 20 total calls, max 300 characters. No sign up required.
+                    </p>
                 </div>
 
                 <!-- Right Panel: Output -->
@@ -469,34 +477,34 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
             <div class="pricing-grid">
                 <!-- Tier 1: Free -->
                 <div class="price-card">
-                    <h3 class="p-name">Free</h3>
+                    <h3 class="p-name">Free API</h3>
                     <div class="p-price">$0</div>
                     <ul class="p-features">
-                        <li>20 calls per IP</li>
-                        <li>All templates</li>
-                        <li>Steamroller + Exact matcher only</li>
-                        <li>No LLM Auto Mapper</li>
+                        <li>20 lifetime requests</li>
                         <li>Max 500 characters per payload</li>
+                        <li>5 requests per minute</li>
+                        <li>Steamroller + Exact matcher only</li>
+                        <li>No Semantic Engine</li>
                     </ul>
-                    <a href="#tab-curl" class="btn btn-secondary" style="width: 100%; text-decoration: none;">Start for
-                        free</a>
+                    <a href="#tab-curl" class="btn btn-secondary" style="width: 100%; text-decoration: none;">Read the
+                        docs</a>
                 </div>
 
                 <!-- Tier 2: BYOK -->
                 <div class="price-card recommended">
                     <div class="rec-badge">Recommended</div>
-                    <h3 class="p-name">BYOK</h3>
-                    <div class="p-price">Usage based</div>
+                    <h3 class="p-name">Pro (BYOK)</h3>
+                    <div class="p-price">$19<span style="font-size: 1rem; color: var(--text-secondary);">/mo</span>
+                    </div>
                     <ul class="p-features">
-                        <li>Unlimited calls</li>
-                        <li>All 4 templates</li>
-                        <li>Full LLM Auto Mapper</li>
-                        <li>Confidence scoring</li>
-                        <li>Audit logs</li>
-                        <li>Gemini / OpenAI / Claude routing</li>
+                        <li>3,000 monthly requests</li>
                         <li>Max 5,000 characters per payload</li>
+                        <li>30 requests per minute</li>
+                        <li>Full Semantic Engine access</li>
+                        <li>Confidence scoring & Audit logs</li>
+                        <li>Gemini / OpenAI / Claude routing</li>
                     </ul>
-                    <button class="btn btn-primary" style="width: 100%;">Get your API key</button>
+                    <button class="btn btn-primary" style="width: 100%;">Get your Pro License</button>
                 </div>
 
             </div>
@@ -525,12 +533,11 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
                 </div>
 
                 <div class="faq-item">
-                    <button class="faq-question">Why is the Auto Mapper disabled on the free tier?</button>
+                    <button class="faq-question">Why does the Semantic Engine require a Pro License?</button>
                     <div class="faq-answer">
-                        <p>The Auto Mapper relies on advanced LLMs (Gemini/Claude/OpenAI) which charge per token.
-                            To keep the API sustainable and prevent abuse, LLM matching features are restricted to the
-                            BYOK (Bring
-                            Your Own Key) tier where you control your own usage costs.</p>
+                        <p>To protect the API from abuse, the Semantic LLM Engine is only available on the $19/mo Pro
+                            tier. However, you can test the Engine completely for free in the Playground above by
+                            providing your own API key!</p>
                     </div>
                 </div>
 

@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException, Header
 from typing import Optional
-from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 import json
 from google import genai
@@ -12,6 +11,11 @@ import psycopg2
 import hashlib
 import os
 from dotenv import load_dotenv
+import time
+
+# Tracks Free/Playground users: { "client_xyz": { "total_calls": 5, "timestamps": [170000, 170010] } }
+free_tracker = {}
+pro_tracker = {}  # Tracks the 30 requests/min speed limit for Pro users
 
 # Load the Neon URL from .env file
 load_dotenv()
@@ -19,36 +23,46 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 def verify_license(provided_key: str):
-    # if no key provided, they arent pro users
     if not provided_key:
-        return False
+        return "invalid"
 
-    # mathematically scramble the key sent (one way hash)
     hashed_key = hashlib.sha256(provided_key.encode()).hexdigest()
 
     try:
-        # open a tunnel to neon db
         conn = psycopg2.connect(DATABASE_URL)
-        cursor = conn.cursor
+        cursor = conn.cursor()
 
-        # ask spreadsheet if hash exists
-        # use %s to prevent sql  injections
+        # 1. Ask the database for their status AND their current usage
         cursor.execute(
-            "SELECT status FROM api_licenses WHERE hashed_key = %s", (hashed_key,)
+            "SELECT status, monthly_usage FROM api_licenses WHERE hashed_key = %s",
+            (hashed_key,),
         )
         result = cursor.fetchone()
 
-        # Close the tunnel
-        conn.close()
-
-        # if found row and status is active, they are pro users
         if result and result[0] == "active":
-            return True
-        return False
+            monthly_usage = result[1]
+
+            # 2. Check the 3,000 Monthly Limit
+            if monthly_usage >= 3000:
+                conn.close()
+                return "limit_reached"
+
+            # 3. If they are under the limit, increment their usage by 1
+            cursor.execute(
+                "UPDATE api_licenses SET monthly_usage = monthly_usage + 1 WHERE hashed_key = %s",
+                (hashed_key,),
+            )
+            conn.commit()  # Save the change to the database
+
+            conn.close()
+            return "valid"
+
+        conn.close()
+        return "invalid"
+
     except Exception as e:
-        # if the db goes down, log error and default free tier
-        print(f"Database error: {e}")
-        return False
+        print(f"DEBUG - DATABASE CRASH ERROR: {e}")
+        return "error"
 
 
 def exact_match_filter(master_keys, messy_data):
@@ -102,10 +116,6 @@ def steamroller(nested_dict, parent_key="", sep="_"):
             # if its a normal value, savit it to the dict
             flat_dict[new_key] = value
     return flat_dict
-
-
-# keeps track of how many times an IP has used the free tier
-ip_tracker = {}
 
 
 def call_claude(prompt, custom_key):
@@ -201,10 +211,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# Crreates blueprint for the lock
-api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
-
-
 # Defines the desk location (endpoint) and the method GET
 @app.get("/health")
 def generic_func():
@@ -237,10 +243,17 @@ def clean_my_data(
     request: Request,
     x_schemasync_license: Optional[str] = Header(None),
     x_llm_key: Optional[str] = Header(None),
+    x_client_id: Optional[str] = Header(None),  # The new LocalStorage Nametag
 ):
     # Expect a JSON package and call it 'payload', 'request' here hands raw data, look for x_schemasync_license and x_llm_key. they are Optional, and if the user doesn't provide them, just default to None instead of crashing
-    # security: check the Neon database for a valid license
-    is_pro = verify_license(x_schemasync_license)
+    license_status = verify_license(x_schemasync_license)
+
+    if license_status == "limit_reached":
+        raise HTTPException(
+            status_code=429, detail="Pro monthly limit of 3,000 requests reached."
+        )
+
+    is_pro = license_status == "valid"
 
     # Check if this is coming from the website demo
     is_playground = payload.get("is_playground", False)
@@ -262,23 +275,53 @@ def clean_my_data(
             detail=f"Payload too large. Max {size_limit} characters.",
         )
 
-    # 2. QUOTA: Track IP limits for free/playground users
-    user_ip = request.client.host
+    current_time = time.time()
+
+    # 2. QUOTA: Track Limits for both Free and Pro Tiers
     if not is_pro:
-        if user_ip not in ip_tracker:
-            ip_tracker[user_ip] = 0  # add user start at 0
+        # FREE & PLAYGROUND TIER (20 calls total, 5 req/min)
+        client_identifier = x_client_id if x_client_id else request.client.host
 
-        # Playground and Free API gets 20 calls
-        max_calls = 20
+        if client_identifier not in free_tracker:
+            free_tracker[client_identifier] = {"total_calls": 0, "timestamps": []}
 
-        # If they hit the limit, reject them.
-        if ip_tracker[user_ip] >= max_calls:
+        user_data = free_tracker[client_identifier]
+
+        if user_data["total_calls"] >= 20:
             raise HTTPException(
                 status_code=429,
-                detail=f"Limit of {max_calls} calls reached. Purchase a license or provide an LLM key.",
+                detail="Lifetime limit of 20 free calls reached. Please upgrade to Pro.",
             )
-        else:
-            ip_tracker[user_ip] += 1
+
+        user_data["timestamps"] = [
+            t for t in user_data["timestamps"] if current_time - t < 60
+        ]
+        if len(user_data["timestamps"]) >= 5:
+            raise HTTPException(
+                status_code=429,
+                detail="Speed limit exceeded: Max 5 requests per minute. Slow down!",
+            )
+
+        user_data["total_calls"] += 1
+        user_data["timestamps"].append(current_time)
+
+    else:
+        # PRO TIER (30 req/min speed limit)
+        # The 3,000 monthly limit was already handled and incremented by verify_license()
+        if x_schemasync_license not in pro_tracker:
+            pro_tracker[x_schemasync_license] = []
+
+        timestamps = pro_tracker[x_schemasync_license]
+        timestamps = [t for t in timestamps if current_time - t < 60]
+
+        if len(timestamps) >= 30:
+            raise HTTPException(
+                status_code=429,
+                detail="Pro speed limit exceeded: Max 30 requests per minute.",
+            )
+
+        timestamps.append(current_time)
+        pro_tracker[x_schemasync_license] = timestamps
 
     # extract whatever sent
     template_name = payload.get("template_name")

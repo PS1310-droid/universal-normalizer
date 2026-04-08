@@ -116,6 +116,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // --- Toggle Custom Keys Field ---
+    const templateSelect = document.getElementById('pg-template');
+    const customKeysField = document.getElementById('pg-custom-keys-field');
+
+    if (templateSelect && customKeysField) {
+        templateSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'custom') {
+                customKeysField.style.display = 'block';
+            } else {
+                customKeysField.style.display = 'none';
+            }
+        });
+    }
+
     const submitBtn = document.getElementById('pg-submit');
     if (submitBtn) {
         submitBtn.addEventListener('click', async (e) => {
@@ -147,23 +161,44 @@ document.addEventListener('DOMContentLoaded', () => {
             loading.style.display = 'flex';
 
             try {
-                // Call real backend endpoint
+                // 1. Generate or retrieve the Anonymous LocalStorage ID
+                let clientId = localStorage.getItem('schemasync_client_id');
+                if (!clientId) {
+                    clientId = 'client_' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('schemasync_client_id', clientId);
+                }
+
+                // 2. Build the Envelope (Headers)
                 const headers = {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'x-client-id': clientId  // <--- Sends the nametag to Python
                 };
+
+                // 3. If they typed an AI key, attach it with the NEW header name!
                 if (apiKey) {
-                    headers['X-API-Key'] = apiKey;
+                    headers['x-llm-key'] = apiKey; // <--- Changed from X-API-Key
+                }
+
+                // 4. Build the payload dynamically (Template vs Custom Array)
+                let requestBody = {
+                    messy_data: payload,
+                    is_playground: true
+                };
+
+                if (template === 'custom') {
+                    // Turn "First, Last" into ["First", "Last"]
+                    const rawKeys = document.getElementById('pg-custom-keys').value || "";
+                    const keysArray = rawKeys.split(',').map(k => k.trim()).filter(k => k);
+                    requestBody.master_keys = keysArray;
+                } else {
+                    requestBody.template_name = template;
                 }
 
                 // Make sure your FastAPI server is running on localhost:8000
                 const response = await fetch('http://127.0.0.1:8000/normalize/auto', {
                     method: 'POST',
                     headers: headers,
-                    body: JSON.stringify({
-                        template_name: template,
-                        messy_data: payload,
-                        is_playground: true // Tells the backend to use the strict 300-char limit
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const data = await response.json();
