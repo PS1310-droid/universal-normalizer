@@ -8,6 +8,47 @@ from google.genai import types
 from openai import OpenAI
 from anthropic import Anthropic
 import re
+import psycopg2
+import hashlib
+import os
+from dotenv import load_dotenv
+
+# Load the Neon URL from .env file
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+
+def verify_license(provided_key: str):
+    # if no key provided, they arent pro users
+    if not provided_key:
+        return False
+
+    # mathematically scramble the key sent (one way hash)
+    hashed_key = hashlib.sha256(provided_key.encode()).hexdigest()
+
+    try:
+        # open a tunnel to neon db
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor
+
+        # ask spreadsheet if hash exists
+        # use %s to prevent sql  injections
+        cursor.execute(
+            "SELECT status FROM api_licenses WHERE hashed_key = %s", (hashed_key,)
+        )
+        result = cursor.fetchone()
+
+        # Close the tunnel
+        conn.close()
+
+        # if found row and status is active, they are pro users
+        if result and result[0] == "active":
+            return True
+        return False
+    except Exception as e:
+        # if the db goes down, log error and default free tier
+        print(f"Database error: {e}")
+        return False
 
 
 def exact_match_filter(master_keys, messy_data):
@@ -65,8 +106,6 @@ def steamroller(nested_dict, parent_key="", sep="_"):
 
 # keeps track of how many times an IP has used the free tier
 ip_tracker = {}
-
-VALID_LICENSES = ["sync-pro-launch-2026", "dev-test-key"]
 
 
 def call_claude(prompt, custom_key):
@@ -200,8 +239,8 @@ def clean_my_data(
     x_llm_key: Optional[str] = Header(None),
 ):
     # Expect a JSON package and call it 'payload', 'request' here hands raw data, look for x_schemasync_license and x_llm_key. they are Optional, and if the user doesn't provide them, just default to None instead of crashing
-    # security: check if they are paying users
-    is_pro = x_schemasync_license in VALID_LICENSES
+    # security: check the Neon database for a valid license
+    is_pro = verify_license(x_schemasync_license)
 
     # Check if this is coming from the website demo
     is_playground = payload.get("is_playground", False)
@@ -283,9 +322,10 @@ def clean_my_data(
         master_keys=master_keys, messy_data=messy_data
     )
 
-    # Strict AI Gate: Must have complex keys AND be a Pro User AND have an LLM key
+    # AI Gate: Allowed for Pro Users (Production) OR Playground Users (Demo), IF they provide an LLM key.
     schema_map = {}
-    if len(leftover_keys) > 0 and is_pro and x_llm_key:
+    can_use_ai = (is_pro and x_llm_key) or (is_playground and x_llm_key)
+    if len(leftover_keys) > 0 and can_use_ai:
         schema_map = ai_mapper(
             master_keys=leftover_keys, messy_data=messy_data, custom_key=x_llm_key
         )
