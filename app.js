@@ -11,6 +11,258 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3500);
     }
 
+    // --- Schema Flow Canvas Animation ---
+    const canvas = document.getElementById('schema-flow-canvas');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        const GREEN = [0, 229, 153];
+        const DIM_GREEN = [0, 140, 90];
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.offsetWidth;
+            canvas.height = canvas.parentElement.offsetHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            initScene();
+        });
+
+        // Scene data
+        let chaosNodes = [];
+        let laneLines = [];
+        let flowParticles = [];
+        const LANE_COUNT = 8;
+        const CHAOS_NODE_COUNT = 40;
+
+        // Helper: calculate lane Y positions centered in the canvas
+        function getLaneY(h, i) {
+            const topPad = h * 0.05;
+            const bottomPad = h * 0.05;
+            const usable = h - topPad - bottomPad;
+            return topPad + (usable / (LANE_COUNT - 1)) * i;
+        }
+
+        function initScene() {
+            chaosNodes = [];
+            laneLines = [];
+            flowParticles = [];
+
+            const w = canvas.width;
+            const h = canvas.height;
+            const funnelX = w * 0.48;
+
+            // Generate chaotic nodes on the left 40% of the screen
+            for (let i = 0; i < CHAOS_NODE_COUNT; i++) {
+                chaosNodes.push({
+                    x: 20 + Math.random() * (funnelX - 60),
+                    y: 20 + Math.random() * (h - 40),
+                    size: 2 + Math.random() * 3,
+                    connections: [],
+                    pulsePhase: Math.random() * Math.PI * 2
+                });
+            }
+
+            // Connect nearby chaos nodes with messy lines (max 3 connections per node)
+            chaosNodes.forEach((node, i) => {
+                let connCount = 0;
+                chaosNodes.forEach((other, j) => {
+                    if (i === j || connCount >= 3) return;
+                    const dist = Math.hypot(node.x - other.x, node.y - other.y);
+                    if (dist < 160 && Math.random() > 0.4) {
+                        node.connections.push(j);
+                        connCount++;
+                    }
+                });
+            });
+
+            // Generate clean lane lines on the right side
+            for (let i = 0; i < LANE_COUNT; i++) {
+                const laneY = getLaneY(h, i);
+                laneLines.push({
+                    y: laneY,
+                    startX: funnelX + 30,
+                    endX: w - 10
+                });
+            }
+
+            // Create flow particles that travel along funnel paths
+            for (let i = 0; i < 35; i++) {
+                flowParticles.push(createFlowParticle(w, h, funnelX));
+            }
+        }
+
+        function createFlowParticle(w, h, funnelX) {
+            const laneIdx = Math.floor(Math.random() * LANE_COUNT);
+            const laneY = getLaneY(h, laneIdx);
+            // Start from a random chaos node
+            const sourceNode = chaosNodes[Math.floor(Math.random() * chaosNodes.length)];
+            return {
+                startX: sourceNode ? sourceNode.x : Math.random() * funnelX * 0.6,
+                startY: sourceNode ? sourceNode.y : Math.random() * h,
+                endY: laneY,
+                funnelX: funnelX,
+                endX: w - 10,
+                progress: Math.random(),
+                speed: 0.002 + Math.random() * 0.004,
+                opacity: 0.5 + Math.random() * 0.5,
+                size: 2 + Math.random() * 2
+            };
+        }
+
+        initScene();
+
+        let time = 0;
+        function drawFrame() {
+            time += 0.016;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const w = canvas.width;
+            const h = canvas.height;
+            const funnelX = w * 0.48;
+
+            // ===== LEFT SIDE: Chaotic Network =====
+            // Draw messy connection lines
+            chaosNodes.forEach((node) => {
+                node.connections.forEach(j => {
+                    const other = chaosNodes[j];
+                    ctx.beginPath();
+                    // Curved messy lines
+                    const midX = (node.x + other.x) / 2 + (Math.random() - 0.5) * 8;
+                    const midY = (node.y + other.y) / 2 + (Math.random() - 0.5) * 8;
+                    ctx.moveTo(node.x, node.y);
+                    ctx.quadraticCurveTo(midX, midY, other.x, other.y);
+                    ctx.strokeStyle = `rgba(${DIM_GREEN.join(',')}, 0.12)`;
+                    ctx.lineWidth = 0.8;
+                    ctx.stroke();
+                });
+            });
+
+            // Draw chaos nodes with subtle pulse
+            chaosNodes.forEach(node => {
+                const pulse = 0.5 + Math.sin(time * 1.5 + node.pulsePhase) * 0.3;
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${GREEN.join(',')}, ${pulse * 0.5})`;
+                ctx.fill();
+                // Glow ring
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, node.size + 3, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(${GREEN.join(',')}, ${pulse * 0.1})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+
+            // ===== CENTER: Convergence Funnel =====
+            // Draw a subtle vertical funnel glow
+            const funnelGrad = ctx.createLinearGradient(funnelX - 30, 0, funnelX + 30, 0);
+            funnelGrad.addColorStop(0, 'rgba(0, 229, 153, 0)');
+            funnelGrad.addColorStop(0.5, `rgba(0, 229, 153, ${0.06 + Math.sin(time * 0.8) * 0.03})`);
+            funnelGrad.addColorStop(1, 'rgba(0, 229, 153, 0)');
+            ctx.fillStyle = funnelGrad;
+            ctx.fillRect(funnelX - 30, 0, 60, h);
+
+            // Vertical dashed line at funnel center
+            ctx.setLineDash([8, 12]);
+            ctx.beginPath();
+            ctx.moveTo(funnelX, 20);
+            ctx.lineTo(funnelX, h - 20);
+            ctx.strokeStyle = `rgba(${GREEN.join(',')}, 0.15)`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // ===== RIGHT SIDE: Clean Organized Lanes =====
+            laneLines.forEach((lane, i) => {
+                // Lane line — solid, visible
+                ctx.beginPath();
+                ctx.moveTo(lane.startX, lane.y);
+                ctx.lineTo(lane.endX, lane.y);
+                ctx.strokeStyle = `rgba(${GREEN.join(',')}, 0.35)`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Brighter leading segment near funnel
+                const leadGrad = ctx.createLinearGradient(lane.startX, 0, lane.startX + 80, 0);
+                leadGrad.addColorStop(0, `rgba(${GREEN.join(',')}, 0)`);
+                leadGrad.addColorStop(1, `rgba(${GREEN.join(',')}, 0.5)`);
+                ctx.beginPath();
+                ctx.moveTo(lane.startX, lane.y);
+                ctx.lineTo(lane.startX + 80, lane.y);
+                ctx.strokeStyle = leadGrad;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Terminal node dots along the lane
+                for (let n = 0; n < 5; n++) {
+                    const nx = lane.startX + 60 + n * ((lane.endX - lane.startX - 80) / 4);
+                    const dotPulse = 0.5 + Math.sin(time * 1.2 + i + n * 0.8) * 0.3;
+                    ctx.beginPath();
+                    ctx.arc(nx, lane.y, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(${GREEN.join(',')}, ${dotPulse})`;
+                    ctx.fill();
+                }
+
+                // Lane label brackets
+                ctx.beginPath();
+                ctx.moveTo(lane.endX - 6, lane.y - 8);
+                ctx.lineTo(lane.endX, lane.y - 8);
+                ctx.lineTo(lane.endX, lane.y + 8);
+                ctx.lineTo(lane.endX - 6, lane.y + 8);
+                ctx.strokeStyle = `rgba(${GREEN.join(',')}, 0.3)`;
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+            });
+
+            // ===== FLOW PARTICLES: Travel from chaos → lanes =====
+            flowParticles.forEach(p => {
+                p.progress += p.speed;
+                if (p.progress >= 1) {
+                    p.progress = 0;
+                    // Pick new source
+                    const src = chaosNodes[Math.floor(Math.random() * chaosNodes.length)];
+                    if (src) { p.startX = src.x; p.startY = src.y; }
+                    const laneIdx = Math.floor(Math.random() * LANE_COUNT);
+                    p.endY = getLaneY(h, laneIdx);
+                }
+
+                const t = p.progress;
+                // Bezier curve from chaos node → funnel → lane
+                const cp1x = p.funnelX - 60;
+                const cp1y = p.startY;
+                const cp2x = p.funnelX + 60;
+                const cp2y = p.endY;
+                // Cubic bezier
+                const mt = 1 - t;
+                const px = mt * mt * mt * p.startX + 3 * mt * mt * t * cp1x + 3 * mt * t * t * cp2x + t * t * t * p.endX;
+                const py = mt * mt * mt * p.startY + 3 * mt * mt * t * cp1y + 3 * mt * t * t * cp2y + t * t * t * p.endY;
+
+                // Draw particle
+                const brightness = 0.3 + t * 0.7; // gets brighter as it organizes
+                ctx.beginPath();
+                ctx.arc(px, py, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${GREEN.join(',')}, ${p.opacity * brightness})`;
+                ctx.fill();
+
+                // Trail
+                const prevT = Math.max(0, t - 0.04);
+                const pmt = 1 - prevT;
+                const prevX = pmt * pmt * pmt * p.startX + 3 * pmt * pmt * prevT * cp1x + 3 * pmt * prevT * prevT * cp2x + prevT * prevT * prevT * p.endX;
+                const prevY = pmt * pmt * pmt * p.startY + 3 * pmt * pmt * prevT * cp1y + 3 * pmt * prevT * prevT * cp2y + prevT * prevT * prevT * p.endY;
+
+                ctx.beginPath();
+                ctx.moveTo(prevX, prevY);
+                ctx.lineTo(px, py);
+                ctx.strokeStyle = `rgba(${GREEN.join(',')}, ${p.opacity * brightness * 0.5})`;
+                ctx.lineWidth = p.size * 0.8;
+                ctx.stroke();
+            });
+
+            requestAnimationFrame(drawFrame);
+        }
+        drawFrame();
+    }
+
     // --- Precise Grid Intersection Background ---
     const bgContainer = document.getElementById('tech-map-bg');
     if (bgContainer) {
