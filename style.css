@@ -545,7 +545,6 @@ p.section-subtitle {
     color: var(--text-secondary);
     line-height: 1.6;
     margin-bottom: 24px;
-    flex-grow: 1;
 }
 
 .layer-code {
@@ -556,7 +555,6 @@ p.section-subtitle {
     font-family: var(--font-mono);
     font-size: 0.85rem;
     color: #e5e7eb;
-    margin-top: auto;
     overflow-x: auto;
 }
 

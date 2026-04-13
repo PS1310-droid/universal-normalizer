@@ -102,102 +102,39 @@
             <div class="pipeline-flow">
                 <div class="pipeline-step" data-step="1">
                     <span class="pipeline-num">①</span>
-                    <span class="pipeline-label">Steamroller</span>
-                    <span class="pipeline-desc">Flatten nested JSON</span>
+                    <span class="pipeline-label">Template Engine</span>
+                    <span class="pipeline-desc">Define the target</span>
                 </div>
                 <div class="pipeline-connector"><span>→</span></div>
                 <div class="pipeline-step" data-step="2">
                     <span class="pipeline-num">②</span>
-                    <span class="pipeline-label">Exact Matcher</span>
-                    <span class="pipeline-desc">Free, deterministic</span>
+                    <span class="pipeline-label">Steamroller</span>
+                    <span class="pipeline-desc">Flatten nested JSON</span>
                 </div>
                 <div class="pipeline-connector"><span>→</span></div>
                 <div class="pipeline-step" data-step="3">
                     <span class="pipeline-num">③</span>
-                    <span class="pipeline-label">AI Mapper</span>
-                    <span class="pipeline-desc">Ambiguous keys only</span>
+                    <span class="pipeline-label">Exact Matcher</span>
+                    <span class="pipeline-desc">Free, deterministic</span>
                 </div>
                 <div class="pipeline-connector"><span>→</span></div>
                 <div class="pipeline-step" data-step="4">
                     <span class="pipeline-num">④</span>
-                    <span class="pipeline-label">Confidence Gate</span>
+                    <span class="pipeline-label">LLM Fallback</span>
                     <span class="pipeline-desc">&lt;85% → flagged</span>
                 </div>
             </div>
 
             <!-- Layer Cards -->
             <div class="layers-grid">
-                <!-- Layer 1 -->
+                <!-- Layer 1: Template Engine -->
                 <div class="layer-card">
                     <span class="layer-step">01_</span>
-                    <h3>The Steamroller</h3>
-                    <p>Every real API (Shopify, Salesforce, HubSpot) sends deeply nested JSON. Objects inside objects,
-                        arrays of objects. Before the API touches your schema, the Steamroller recursively flattens it.
-                        A key
-                        buried at <code>customer → location → city</code> becomes <code>customer_location_city</code>.
-                        Your master schema stays flat and clean.</p>
-                    <div class="layer-code">
-                        <div class="code-label">Input</div>
-                        <pre><code>{ <span class="json-key">"customer"</span>: { <span class="json-key">"location"</span>: { <span class="json-key">"city"</span>: <span class="json-str">"Gotham"</span> } } }</code></pre>
-                        <div class="code-label" style="margin-top: 12px;">Output</div>
-                        <pre><code>{ <span class="json-key">"customer_location_city"</span>: <span class="json-str">"Gotham"</span> }</code></pre>
-                    </div>
-                </div>
-
-                <!-- Layer 2 -->
-                <div class="layer-card">
-                    <span class="layer-step">02_</span>
-                    <h3>Exact Matcher</h3>
-                    <p>Before hitting any inference endpoints, the API strips punctuation, lowercases everything, and
-                        compares.
-                        "First_Name", "firstname", and "f-i-r-s-t-name" all match FirstName. If Python can figure it
-                        out, it does. For free, in milliseconds, with zero hallucination risk.</p>
-                    <div class="layer-code">
-                        <div class="match-flow">
-                            <div class="match-row match-no">
-                                <code>"telephone"</code> <span class="match-arrow">→</span> strips to
-                                <code>"telephone"</code> <span class="match-arrow">→</span> matches "PhoneNumber"? <span
-                                    class="match-verdict no">No → goes to LLM</span>
-                            </div>
-                            <div class="match-row match-yes">
-                                <code>"firstname"</code> <span class="match-arrow">→</span> strips to
-                                <code>"firstname"</code> <span class="match-arrow">→</span> matches "FirstName"? <span
-                                    class="match-verdict yes">Yes → mapped. Free.</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Layer 3 -->
-                <div class="layer-card">
-                    <span class="layer-step">03_</span>
-                    <h3>Semantic Fallback Engine</h3>
-                    <p>Only the keys the exact matcher couldn't figure out are routed to the LLM. The engine returns a
-                        strict confidence
-                        score (0 to 100) for every match. Above 85%: auto mapped into your clean output. Below 85%:
-                        flagged for human review with the suggested match attached, so your team decides, not the model.
-                    </p>
-                    <div class="layer-code">
-                        <pre><code><span class="json-key">"ready_to_use"</span>: {
-  <span class="json-key">"FirstName"</span>: <span class="json-str">"Bruce"</span>
-}
-
-<span class="json-key">"flagged_for_review"</span>: {
-  <span class="json-key">"PhoneNumber"</span>: {
-    <span class="json-key">"suggested_match"</span>: <span class="json-str">"tel"</span>,
-    <span class="json-key">"confidence_score"</span>: <span class="json-num">61</span>
-  }
-}</code></pre>
-                    </div>
-                </div>
-
-                <!-- Layer 4 -->
-                <div class="layer-card">
-                    <span class="layer-step">04_</span>
-                    <h3>Template Engine</h3>
-                    <p>Pre-built and verified the exact field schemas for the most common enterprise tools. Instead of
-                        sending 20+ master keys every call, send one word. Templates are versioned and dated, you always
-                        know what schema version your pipeline was built against.</p>
+                    <h3>The Template Engine</h3>
+                    <p>Before the API can clean your data, it needs a target schema. You have two options: pass a
+                        single template name like <code>shopify_customer</code> and let the API load the full schema
+                        for you, or send your own custom <code>master_keys</code> array for any database. I maintain
+                        pre-built, versioned, industry-standard schemas so the common cases stay lightweight.</p>
                     <div class="template-pills">
                         <span class="template-pill">shopify_customer</span>
                         <span class="template-pill">salesforce_lead</span>
@@ -211,78 +148,92 @@
 }</code></pre>
                     </div>
                 </div>
-            </div>
 
-            <!-- Manual Endpoint Callout -->
-            <div class="manual-callout">
-                <div class="manual-callout-inner">
-                    <div class="manual-left">
-                        <span class="layer-step" style="font-size: 1.2rem;">05_</span>
-                        <h3>Manual Mode</h3>
-                        <p>Already know exactly which fields map to what? Skip the LLM entirely. POST a schema_map
-                            object
-                            and the API will apply it directly. No model calls, no confidence scores, instant output.
-                            Use this in production pipelines where the schema is stable and speed matters.</p>
+                <!-- Layer 2: Steamroller -->
+                <div class="layer-card">
+                    <span class="layer-step">02_</span>
+                    <h3>The Steamroller</h3>
+                    <p>Now that the API has a target, it looks at your messy payload. Real APIs send deeply nested
+                        nightmares: objects inside objects, arrays of objects. Before any matching happens, the
+                        Steamroller recursively flattens your data. A key buried at
+                        <code>customer → location → city</code> becomes <code>customer_location_city</code>.
+                        The unpredictable nesting gets destroyed to create a flat, predictable surface.
+                    </p>
+                    <div class="layer-code">
+                        <div class="code-label">Input</div>
+                        <pre><code>{ <span class="json-key">"customer"</span>: { <span class="json-key">"location"</span>: { <span class="json-key">"city"</span>: <span class="json-str">"Gotham"</span> } } }</code></pre>
+                        <div class="code-label" style="margin-top: 12px;">Output</div>
+                        <pre><code>{ <span class="json-key">"customer_location_city"</span>: <span class="json-str">"Gotham"</span> }</code></pre>
                     </div>
-                    <div class="manual-right">
-                        <div class="endpoint-badge">POST /normalize/manual</div>
+                </div>
+
+                <!-- Layer 3: Exact Matcher -->
+                <div class="layer-card">
+                    <span class="layer-step">03_</span>
+                    <h3>Exact Matcher</h3>
+                    <p>With a flat payload and a clean template, the API does the cheap work first. It strips casing
+                        and punctuation to find deterministic matches. Why pay an LLM to figure out that
+                        <code>First-Name</code> is <code>FirstName</code>? The easy stuff gets mapped for free, in
+                        milliseconds, with zero hallucination risk.
+                    </p>
+                    <div class="layer-code">
+                        <div class="match-flow">
+                            <div class="match-row match-yes">
+                                <code>"First-Name"</code> <span class="match-arrow">→</span> strips to
+                                <code>"firstname"</code> <span class="match-arrow">→</span> matches "FirstName"? <span
+                                    class="match-verdict yes">Yes → mapped. Free.</span>
+                            </div>
+                            <div class="match-row match-no">
+                                <code>"tele_phone"</code> <span class="match-arrow">→</span> strips to
+                                <code>"telephone"</code> <span class="match-arrow">→</span> matches "PhoneNumber"? <span
+                                    class="match-verdict no">No → goes to LLM</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Code Snippets: cURL + Python Tabs -->
-            <div class="code-tabs-container">
-                <h3 class="code-tabs-heading">Make your first call</h3>
-                <div class="code-tabs">
-                    <button class="code-tab active" data-tab="curl">cURL</button>
-                    <button class="code-tab" data-tab="python">Python</button>
-                </div>
-                <div class="code-tab-content active" id="tab-curl">
-                    <pre><code><span class="code-cmd">curl</span> -X POST https://yourdomain.com/normalize/auto \
-  -H <span class="json-str">"Content-Type: application/json"</span> \
-  -H <span class="json-str">"x-schemasync-license: sync_pro_YOUR_LICENSE_KEY"</span> \
-  -H <span class="json-str">"x-llm-key: sk-proj-YOUR_OPENAI_OR_GEMINI_KEY"</span> \
-  -d <span class="json-str">'{
-    "template_name": "shopify_customer",
-    "messy_data": {
-      "f_name": "Bruce",
-      "tel": "555-1234"
-    }
-  }'</span></code></pre>
-                </div>
-                <div class="code-tab-content" id="tab-python">
-                    <pre><code><span style="color: var(--text-secondary);"># Terminal: pip install requests</span>
-<span class="code-kw">import</span> requests
-
-headers = {
-    <span class="json-str">"x-schemasync-license"</span>: <span class="json-str">"sync_pro_YOUR_LICENSE_KEY"</span>,
-    <span class="json-str">"x-llm-key"</span>: <span class="json-str">"sk-proj-YOUR_LLM_KEY"</span>
+                <!-- Layer 4: Semantic Fallback & Confidence Gate -->
+                <div class="layer-card">
+                    <span class="layer-step">04_</span>
+                    <h3>Semantic Fallback & Confidence Gate</h3>
+                    <p>Only the keys that failed the code match get routed to the LLM. The model scores the semantic
+                        equivalence of what remains. If the confidence is above 85%, the field is auto-mapped into your
+                        clean output. If it scores lower, the API safely flags it for human review with the suggested
+                        match attached. Your team decides, not the model. No hallucinated data in your production
+                        database.</p>
+                    <div class="layer-code">
+                        <pre><code><span class="json-key">"ready_to_use"</span>: {
+  <span class="json-key">"FirstName"</span>: <span class="json-str">"Bruce"</span>
 }
-r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"</span>,
-    headers=headers,
-    json={
-        <span class="json-str">"template_name"</span>: <span class="json-str">"shopify_customer"</span>,
-        <span class="json-str">"messy_data"</span>: {<span class="json-str">"f_name"</span>: <span class="json-str">"Bruce"</span>}
-    })
-<span class="code-func">print</span>(r.json())</code></pre>
+
+<span class="json-key">"flagged_for_review"</span>: {
+  <span class="json-key">"PhoneNumber"</span>: {
+    <span class="json-key">"suggested_match"</span>: <span class="json-str">"tel"</span>,
+    <span class="json-key">"confidence_score"</span>: <span class="json-num">61</span>
+  }
+}</code></pre>
+                    </div>
                 </div>
             </div>
+
+            <!-- ======================================== -->
+            <!-- API DOCUMENTATION: Inputs & Code         -->
+            <!-- ======================================== -->
 
             <!-- Payload Breakdown & Endpoints -->
             <div class="payload-docs" id="how-auto" style="margin-top: 64px;">
                 <h3 class="docs-subheading" style="color: var(--text-primary); margin-bottom: 16px; font-size: 1.4rem;">
                     Payload Formats</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 24px;">When calling <code>/normalize/auto</code>,
-                    you must provide the raw JSON object you want cleaned as <code>messy_data</code>. You must also tell
-                    the normalizer what your target schema looks like using either a built-in template or your own array
-                    of keys.</p>
+                    you must provide the raw JSON object you want cleaned as <code>messy_data</code>. You also need to
+                    tell the normalizer what your target schema looks like. You have two options:</p>
 
                 <div class="layers-grid">
                     <div class="layer-card">
                         <h4 style="color: var(--accent-green); margin-bottom: 12px; font-family: var(--font-mono);">
-                            Using a Template</h4>
+                            Option A: Using a Template</h4>
                         <p style="color: var(--text-secondary); font-size: 0.95rem;">Pass <code>template_name</code>
-                            with the exact name of a verified template to apply its schema.</p>
+                            with the exact name of a verified template. The API loads the full schema for you.</p>
                         <pre
                             style="background: var(--code-bg); padding: 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.85rem; color: #e5e7eb; border: 1px solid var(--border-color);">{
   <span class="json-key">"template_name"</span>: <span class="json-str">"shopify_customer"</span>,
@@ -292,9 +243,9 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
 
                     <div class="layer-card">
                         <h4 style="color: var(--accent-green); margin-bottom: 12px; font-family: var(--font-mono);">
-                            Using Custom Master Keys</h4>
-                        <p style="color: var(--text-secondary); font-size: 0.95rem;">Alternatively, pass an array of
-                            strings as <code>master_keys</code> to define your custom schema on the fly.</p>
+                            Option B: Custom Master Keys</h4>
+                        <p style="color: var(--text-secondary); font-size: 0.95rem;">Pass your own array of strings
+                            as <code>master_keys</code> to define any schema on the fly. Works with any database.</p>
                         <pre
                             style="background: var(--code-bg); padding: 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.85rem; color: #e5e7eb; border: 1px solid var(--border-color);">{
   <span class="json-key">"master_keys"</span>: [<span class="json-str">"FirstName"</span>, <span class="json-str">"PhoneNumber"</span>],
@@ -304,16 +255,99 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
                 </div>
             </div>
 
-            <!-- Manual Method Docs -->
+            <!-- Code Snippets: cURL + Python Tabs -->
+            <div class="code-tabs-container">
+                <h3 class="code-tabs-heading">Make your first call</h3>
+                <div class="code-tabs">
+                    <button class="code-tab active" data-tab="curl">cURL (Template)</button>
+                    <button class="code-tab" data-tab="curl-custom">cURL (Custom Keys)</button>
+                    <button class="code-tab" data-tab="python">Python (Template)</button>
+                    <button class="code-tab" data-tab="python-custom">Python (Custom Keys)</button>
+                </div>
+                <div class="code-tab-content active" id="tab-curl">
+                    <pre><code><span class="code-cmd">curl</span> -X POST https://yourdomain.com/normalize/auto \
+  -H <span class="json-str">"Content-Type: application/json"</span> \
+  -H <span class="json-str">"x-schemasync-license: YOUR_LICENSE_KEY"</span> \
+  -H <span class="json-str">"x-llm-key: YOUR_LLM_KEY"</span> \
+  -d <span class="json-str">'{
+    "template_name": "shopify_customer",
+    "messy_data": {
+      "f_name": "Bruce",
+      "tel": "555-1234"
+    }
+  }'</span></code></pre>
+                </div>
+                <div class="code-tab-content" id="tab-curl-custom">
+                    <pre><code><span class="code-cmd">curl</span> -X POST https://yourdomain.com/normalize/auto \
+  -H <span class="json-str">"Content-Type: application/json"</span> \
+  -H <span class="json-str">"x-schemasync-license: YOUR_LICENSE_KEY"</span> \
+  -H <span class="json-str">"x-llm-key: YOUR_LLM_KEY"</span> \
+  -d <span class="json-str">'{
+    "master_keys": ["UserID", "Email", "FullName", "PhoneNumber"],
+    "messy_data": {
+      "uid": "42",
+      "email_addr": "bruce@wayne.co",
+      "f_name": "Bruce Wayne",
+      "tel": "555-1234"
+    }
+  }'</span></code></pre>
+                </div>
+                <div class="code-tab-content" id="tab-python">
+                    <pre><code><span style="color: var(--text-secondary);"># Terminal: pip install requests</span>
+<span class="code-kw">import</span> requests
+
+headers = {
+    <span class="json-str">"x-schemasync-license"</span>: <span class="json-str">"YOUR_LICENSE_KEY"</span>,
+    <span class="json-str">"x-llm-key"</span>: <span class="json-str">"YOUR_LLM_KEY"</span>
+}
+r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"</span>,
+    headers=headers,
+    json={
+        <span class="json-str">"template_name"</span>: <span class="json-str">"shopify_customer"</span>,
+        <span class="json-str">"messy_data"</span>: {<span class="json-str">"f_name"</span>: <span class="json-str">"Bruce"</span>}
+    })
+<span class="code-func">print</span>(r.json())</code></pre>
+                </div>
+                <div class="code-tab-content" id="tab-python-custom">
+                    <pre><code><span style="color: var(--text-secondary);"># Terminal: pip install requests</span>
+<span class="code-kw">import</span> requests
+
+headers = {
+    <span class="json-str">"x-schemasync-license"</span>: <span class="json-str">"YOUR_LICENSE_KEY"</span>,
+    <span class="json-str">"x-llm-key"</span>: <span class="json-str">"YOUR_LLM_KEY"</span>
+}
+r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"</span>,
+    headers=headers,
+    json={
+        <span class="json-str">"master_keys"</span>: [<span class="json-str">"UserID"</span>, <span class="json-str">"Email"</span>, <span class="json-str">"FullName"</span>],
+        <span class="json-str">"messy_data"</span>: {
+            <span class="json-str">"uid"</span>: <span class="json-str">"42"</span>,
+            <span class="json-str">"email_addr"</span>: <span class="json-str">"bruce@wayne.co"</span>
+        }
+    })
+<span class="code-func">print</span>(r.json())</code></pre>
+                </div>
+            </div>
+
+            <!-- Manual Endpoint: Self-Contained Block -->
             <div class="payload-docs" id="how-manual" style="margin-top: 48px;">
-                <h3 class="docs-subheading" style="color: var(--text-primary); margin-bottom: 16px; font-size: 1.4rem;">
-                    The Manual Endpoint</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 24px;">If you already know the field mapping and
-                    want to bypass LLM processing for a faster response, you can post directly to
-                    <code>/normalize/manual</code>. Provide a <code>schema_map</code> dictionary linking your intended
-                    master keys to the provided messy keys.
-                </p>
-                <div class="layer-code">
+                <div class="manual-callout">
+                    <div class="manual-callout-inner">
+                        <div class="manual-left">
+                            <span class="layer-step" style="font-size: 1.2rem;">05_</span>
+                            <h3>Manual Mode</h3>
+                            <p>Already know exactly which fields map to what? Skip the LLM entirely. POST a
+                                <code>schema_map</code> object and the API applies it directly. No model calls, no
+                                confidence scores, instant output. Use this in production pipelines where the schema
+                                is stable and speed matters.
+                            </p>
+                        </div>
+                        <div class="manual-right">
+                            <div class="endpoint-badge">POST /normalize/manual</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="layer-code" style="margin-top: 24px;">
                     <pre><code><span class="code-cmd">curl</span> -X POST https://yourdomain.com/normalize/manual \
   -H <span class="json-str">"Content-Type: application/json"</span> \
   -d <span class="json-str">'{
@@ -518,8 +552,10 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
                     <span class="provider-badge pb-openai">OpenAI</span>
                     <span class="provider-badge pb-claude">Anthropic Claude</span>
                 </div>
-                <p class="providers-fine-print">Pass your license in the <code>x-schemasync-license</code> header, and
-                    your LLM key in the <code>x-llm-key</code> header. The API detects your provider automatically.</p>
+                <p class="providers-fine-print">The API detects your provider automatically. Pro users: pass your
+                    license in the <code>x-schemasync-license</code>
+                    header and your LLM key in the <code>x-llm-key</code> header. Free tier users need no headers at
+                    all.</p>
             </div>
 
             <!-- FAQ -->

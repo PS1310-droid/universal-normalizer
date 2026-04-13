@@ -47,41 +47,38 @@ payload = {
 }
 
 
-# ... (Keep your complex_messy_json and pro_headers exactly the same) ...
-
-print("--- TEST 3: The Template Engine (Shopify) ---")
-print(
-    "Sending the complex payload and asking the API to map it to Shopify's standard..."
-)
-
-#  sending 'template_name' INSTEAD of 'master_keys'
-template_payload = {
-    "template_name": "shopify_customer",
-    "messy_data": complex_messy_json,
-}
-
-response = requests.post(
-    f"{BASE_URL}/normalize/auto", headers=pro_headers, json=template_payload
-)
-
-print(f"Status Code: {response.status_code}")
-data = response.json()
-
-#  cleanly print what it mapped and what it flagged
-print("\n✅ MAPPED TO SHOPIFY:")
-for key, value in data.get("ready_to_use", {}).items():
-    print(f"  {key}: {value}")
-
-print(
-    "\n FLAGGED FOR REVIEW (Shopify has 24 keys, so many will be flagged as missing!):"
-)
-for key in data.get("flagged_for_review", {}).keys():
-    print(f"  {key} (Missing from messy data)")
-
-
-# response = requests.post(
-#     f"{BASE_URL}/normalize/auto", headers=pro_headers, json=payload
+# print("--- TEST : The Template Engine (Shopify) ---")
+# print(
+#     "Sending the complex payload and asking the API to map it to Shopify's standard..."
 # )
 
-# print("Status Code:", response.status_code)
-# print("API Response:", response.json())
+# template_payload = {
+#     "template_name": "shopify_customer",
+#     "messy_data": complex_messy_json,
+# }
+
+# response = requests.post(
+#     f"{BASE_URL}/normalize/auto", headers=pro_headers, json=template_payload
+# )
+
+# print(f"Status Code: {response.status_code}")
+# data = response.json()
+
+# #  cleanly print what it mapped and what it flagged
+# print("\n MAPPED TO SHOPIFY:")
+# for key, value in data.get("ready_to_use", {}).items():
+#     print(f"  {key}: {value}")
+
+# print(
+#     "\n FLAGGED FOR REVIEW (Shopify has 24 keys, so many will be flagged as missing):"
+# )
+# for key in data.get("flagged_for_review", {}).keys():
+#     print(f"  {key} (Missing from messy data)")
+
+
+response = requests.post(
+    f"{BASE_URL}/normalize/auto", headers=pro_headers, json=payload
+)
+
+print("Status Code:", response.status_code)
+print("API Response:", response.json())
