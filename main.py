@@ -204,9 +204,16 @@ def ai_mapper(master_keys, messy_data, custom_key=None):
 # Creates the receptionist that listens for package
 app = FastAPI()
 
+# Allowed frontend origins (no trailing slashes)
+origins = [
+    "http://localhost:3000",                # Local development
+    "http://127.0.0.1:3000",               # Local development (alt)
+    "https://schemasync-api.vercel.app",    # Production frontend on Vercel
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

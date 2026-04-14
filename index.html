@@ -266,7 +266,7 @@
                     <button class="code-tab" data-tab="python-custom">Python (Custom Keys)</button>
                 </div>
                 <div class="code-tab-content active" id="tab-curl">
-                    <pre><code><span class="code-cmd">curl</span> -X POST https://yourdomain.com/normalize/auto \
+                    <pre><code><span class="code-cmd">curl</span> -X POST https://schemasync-api-192386894570.us-central1.run.app/normalize/auto \
   -H <span class="json-str">"Content-Type: application/json"</span> \
   -H <span class="json-str">"x-schemasync-license: YOUR_LICENSE_KEY"</span> \
   -H <span class="json-str">"x-llm-key: YOUR_LLM_KEY"</span> \
@@ -279,7 +279,7 @@
   }'</span></code></pre>
                 </div>
                 <div class="code-tab-content" id="tab-curl-custom">
-                    <pre><code><span class="code-cmd">curl</span> -X POST https://yourdomain.com/normalize/auto \
+                    <pre><code><span class="code-cmd">curl</span> -X POST https://schemasync-api-192386894570.us-central1.run.app/normalize/auto \
   -H <span class="json-str">"Content-Type: application/json"</span> \
   -H <span class="json-str">"x-schemasync-license: YOUR_LICENSE_KEY"</span> \
   -H <span class="json-str">"x-llm-key: YOUR_LLM_KEY"</span> \
@@ -301,7 +301,7 @@ headers = {
     <span class="json-str">"x-schemasync-license"</span>: <span class="json-str">"YOUR_LICENSE_KEY"</span>,
     <span class="json-str">"x-llm-key"</span>: <span class="json-str">"YOUR_LLM_KEY"</span>
 }
-r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"</span>,
+r = requests.post(<span class="json-str">"https://schemasync-api-192386894570.us-central1.run.app/normalize/auto"</span>,
     headers=headers,
     json={
         <span class="json-str">"template_name"</span>: <span class="json-str">"shopify_customer"</span>,
@@ -317,7 +317,7 @@ headers = {
     <span class="json-str">"x-schemasync-license"</span>: <span class="json-str">"YOUR_LICENSE_KEY"</span>,
     <span class="json-str">"x-llm-key"</span>: <span class="json-str">"YOUR_LLM_KEY"</span>
 }
-r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"</span>,
+r = requests.post(<span class="json-str">"https://schemasync-api-192386894570.us-central1.run.app/normalize/auto"</span>,
     headers=headers,
     json={
         <span class="json-str">"master_keys"</span>: [<span class="json-str">"UserID"</span>, <span class="json-str">"Email"</span>, <span class="json-str">"FullName"</span>],
@@ -349,7 +349,7 @@ r = requests.post(<span class="json-str">"https://yourdomain.com/normalize/auto"
                     </div>
                 </div>
                 <div class="layer-code" style="margin-top: 24px;">
-                    <pre><code><span class="code-cmd">curl</span> -X POST https://yourdomain.com/normalize/manual \
+                    <pre><code><span class="code-cmd">curl</span> -X POST https://schemasync-api-192386894570.us-central1.run.app/normalize/manual \
   -H <span class="json-str">"Content-Type: application/json"</span> \
   -d <span class="json-str">'{
     "schema_map": {
