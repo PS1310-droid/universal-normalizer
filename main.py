@@ -523,17 +523,28 @@ async def lemonsqueezy_webhook(request: Request):
             ls_license_id = str(data.get("data", {}).get("id"))
             ls_customer_id = str(obj_data.get("customer_id"))
 
+            # Grab the name and email
+            user_name = obj_data.get("user_name")
+            user_email = obj_data.get("user_email")
+
             # Set initial billing period end to 30 days from now
             period_end = datetime.datetime.now() + datetime.timedelta(days=30)
 
             cursor.execute(
                 """
                 INSERT INTO api_licenses 
-                (hashed_key, status, monthly_usage, ls_customer_id, ls_license_id, current_period_end) 
-                VALUES (%s, 'active', 0, %s, %s, %s)
+                (hashed_key, status, monthly_usage, ls_customer_id, ls_license_id, current_period_end, user_name, user_email) 
+                VALUES (%s, 'active', 0, %s, %s, %s, %s, %s)
                 ON CONFLICT (hashed_key) DO NOTHING
                 """,
-                (hashed_key, ls_customer_id, ls_license_id, period_end),
+                (
+                    hashed_key,
+                    ls_customer_id,
+                    ls_license_id,
+                    period_end,
+                    user_name,
+                    user_email,
+                ),
             )
 
         # EVENT B: Status Changed (Refunds, Cancellations, Pauses)

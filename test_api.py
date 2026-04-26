@@ -25,12 +25,12 @@ complex_messy_json = {
 }
 
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = "https://schemasync-api-192386894570.us-central1.run.app"
 
 free_headers = {"Content-Type": "application/json", "x-client-id": "my_test_script"}
 pro_headers = {
     "Content-Type": "application/json",
-    "x-schemasync-license": "sk_test_123",
+    "x-schemasync-license": "8F3AF9A4-9A57-4978-8030-06D8424A3A26",
     "x-llm-key": "AIzaSyAqu4CtSzJ6OJ2H5ko3Kdvk-XgCDuWA_nE",
 }
 
