@@ -12,14 +12,17 @@ import hashlib
 import os
 from dotenv import load_dotenv
 import time
+import hmac
+import datetime
 
 # Tracks Free/Playground users: { "client_xyz": { "total_calls": 5, "timestamps": [170000, 170010] } }
 free_tracker = {}
 pro_tracker = {}  # Tracks the 30 requests/min speed limit for Pro users
 
-# Load the Neon URL from .env file
+# Load the Neon URL and Webhook Secret from .env file
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
+LEMON_SQUEEZY_SECRET = os.getenv("LEMON_SQUEEZY_SECRET")
 
 
 def verify_license(provided_key: str):
@@ -32,28 +35,41 @@ def verify_license(provided_key: str):
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
 
-        # 1. Ask the database for their status AND their current usage
+        # Ask the database for their status, usage, and billing end date
         cursor.execute(
-            "SELECT status, monthly_usage FROM api_licenses WHERE hashed_key = %s",
+            "SELECT status, monthly_usage, current_period_end FROM api_licenses WHERE hashed_key = %s",
             (hashed_key,),
         )
         result = cursor.fetchone()
 
         if result and result[0] == "active":
             monthly_usage = result[1]
+            current_period_end = result[2]
+            now = datetime.datetime.now()
 
-            # 2. Check the 3,000 Monthly Limit
+            # LAZY RESET LOGIC: Has their billing month rolled over?
+            if current_period_end and now > current_period_end:
+                # Yes, Reset usage to 1 (for this call) and push date forward 30 days
+                new_end = now + datetime.timedelta(days=30)
+                cursor.execute(
+                    "UPDATE api_licenses SET monthly_usage = 1, current_period_end = %s WHERE hashed_key = %s",
+                    (new_end, hashed_key),
+                )
+                conn.commit()
+                conn.close()
+                return "valid"
+
+            # Check the 3,000 Monthly Limit
             if monthly_usage >= 3000:
                 conn.close()
                 return "limit_reached"
 
-            # 3. If they are under the limit, increment their usage by 1
+            # If under limit, increment usage
             cursor.execute(
                 "UPDATE api_licenses SET monthly_usage = monthly_usage + 1 WHERE hashed_key = %s",
                 (hashed_key,),
             )
-            conn.commit()  # Save the change to the database
-
+            conn.commit()
             conn.close()
             return "valid"
 
@@ -206,9 +222,9 @@ app = FastAPI()
 
 # Allowed frontend origins (no trailing slashes)
 origins = [
-    "http://localhost:3000",                # Local development
-    "http://127.0.0.1:3000",               # Local development (alt)
-    "https://schemasync-api.vercel.app",    # Production frontend on Vercel
+    "http://localhost:3000",  # Local development
+    "http://127.0.0.1:3000",  # Local development (alt)
+    "https://schemasync-api.vercel.app",  # Production frontend on Vercel
 ]
 
 app.add_middleware(
@@ -470,3 +486,104 @@ def clean_my_data_manually(
         clean_data[target_key] = actual_value
 
     return {"message": "Data mapped.", "clean_data": clean_data}
+
+
+@app.post("/webhook/lemonsqueezy")
+async def lemonsqueezy_webhook(request: Request):
+    # 1. Catch the raw data and signature
+    signature = request.headers.get("X-Signature")
+    body = await request.body()
+
+    # 2. Verify it actually came from Lemon Squeezy (Hacker Protection)
+    if not LEMON_SQUEEZY_SECRET:
+        raise HTTPException(status_code=500, detail="Webhook secret not configured.")
+
+    digest = hmac.new(LEMON_SQUEEZY_SECRET.encode(), body, hashlib.sha256).hexdigest()
+
+    if not hmac.compare_digest(digest, signature):
+        raise HTTPException(
+            status_code=401, detail="Invalid signature. Hacker blocked."
+        )
+
+    # 3. Parse the event data
+    data = json.loads(body)
+    event_name = data.get("meta", {}).get("event_name")
+
+    # The actual data depends on if it's a License Key event or a Subscription event
+    obj_data = data.get("data", {}).get("attributes", {})
+
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+
+        # EVENT A: New Purchase, Create the key in the database.
+        if event_name == "license_key_created":
+            raw_key = obj_data.get("key")
+            hashed_key = hashlib.sha256(raw_key.encode()).hexdigest()
+            ls_license_id = str(data.get("data", {}).get("id"))
+            ls_customer_id = str(obj_data.get("customer_id"))
+
+            # Set initial billing period end to 30 days from now
+            period_end = datetime.datetime.now() + datetime.timedelta(days=30)
+
+            cursor.execute(
+                """
+                INSERT INTO api_licenses 
+                (hashed_key, status, monthly_usage, ls_customer_id, ls_license_id, current_period_end) 
+                VALUES (%s, 'active', 0, %s, %s, %s)
+                ON CONFLICT (hashed_key) DO NOTHING
+                """,
+                (hashed_key, ls_customer_id, ls_license_id, period_end),
+            )
+
+        # EVENT B: Status Changed (Refunds, Cancellations, Pauses)
+        elif event_name == "license_key_updated":
+            ls_license_id = str(data.get("data", {}).get("id"))
+            new_status = obj_data.get(
+                "status"
+            )  # Lemon Squeezy sends 'inactive' or 'expired'
+
+            # If Lemon Squeezy says it's anything but 'active', we revoke it
+            db_status = "active" if new_status == "active" else "revoked"
+
+            cursor.execute(
+                "UPDATE api_licenses SET status = %s WHERE ls_license_id = %s",
+                (db_status, ls_license_id),
+            )
+
+        # EVENT C: Monthly Renewal Payment Success
+        elif event_name == "subscription_payment_success":
+            ls_subscription_id = str(obj_data.get("subscription_id"))
+
+            # Reset their monthly limit exactly when the payment clears
+            cursor.execute(
+                "UPDATE api_licenses SET monthly_usage = 0 WHERE ls_subscription_id = %s",
+                (ls_subscription_id,),
+            )
+
+        # EVENT D: Subscription Updated (Catches paused or "past due" billing states)
+        elif event_name == "subscription_updated":
+            ls_subscription_id = str(data.get("data", {}).get("id"))
+            sub_status = obj_data.get("status")
+
+            # If the sub is paused, unpaid, or past due, cut off API access
+            if sub_status not in ["active", "on_trial"]:
+                cursor.execute(
+                    "UPDATE api_licenses SET status = 'revoked' WHERE ls_subscription_id = %s",
+                    (ls_subscription_id,),
+                )
+            else:
+                # If they updated their card and recovered, turn the key back on
+                cursor.execute(
+                    "UPDATE api_licenses SET status = 'active' WHERE ls_subscription_id = %s",
+                    (ls_subscription_id,),
+                )
+
+        conn.commit()
+        conn.close()
+
+    except Exception as e:
+        print(f"Webhook Database Error: {e}")
+        return {"status": "error", "message": str(e)}
+
+    return {"status": "success"}
